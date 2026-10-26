@@ -1,5 +1,7 @@
 pub mod db;
 pub mod domain;
+pub mod services;
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
