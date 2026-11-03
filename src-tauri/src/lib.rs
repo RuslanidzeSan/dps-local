@@ -314,6 +314,15 @@ async fn search_objects_v2(
 }
 
 #[tauri::command]
+async fn count_objects_command(
+    _app: AppHandle,
+    filters: services::search::SearchFilters,
+) -> Result<i64, String> {
+    let conn = db::open_database()?;
+    services::search::count_archive_objects_filtered(&conn, &filters)
+}
+
+#[tauri::command]
 async fn update_object_description_handler(_app: AppHandle, object_id: String, description: String) -> Result<(), String> {
     let mut conn = db::open_database()?;
     services::ingest::update_object_description(&mut conn, &object_id, &description)
@@ -377,7 +386,8 @@ pub fn run() {
             search_objects_filtered,
             search_objects_v2,
             update_object_description_handler,
-            verify_object_integrity
+            verify_object_integrity,
+            count_objects_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

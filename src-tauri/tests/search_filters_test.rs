@@ -126,3 +126,82 @@ fn no_filters_returns_everything() {
 
     assert_eq!(all(&conn).len(), 2, "порожні фільтри = весь реєстр");
 }
+
+use dps_local_lib::services::search::count_archive_objects_filtered;
+
+#[test]
+fn count_returns_total_matching_filters() {
+    let (_tmp, conn) = setup();
+    insert_object(&conn, "doc1", Some("pdf"), "2026-01-10T10:00:00+00:00", 100);
+    insert_object(&conn, "doc2", Some("pdf"), "2026-01-11T10:00:00+00:00", 100);
+    insert_object(&conn, "doc3", Some("pdf"), "2026-01-12T10:00:00+00:00", 100);
+    insert_object(&conn, "img1", Some("jpg"), "2026-01-13T10:00:00+00:00", 100);
+    insert_object(&conn, "img2", Some("jpg"), "2026-01-14T10:00:00+00:00", 100);
+
+    let all = count_archive_objects_filtered(&conn, &SearchFilters::default()).unwrap();
+    let pdfs = count_archive_objects_filtered(
+        &conn,
+        &SearchFilters { extension: Some("pdf".into()), ..Default::default() },
+    ).unwrap();
+
+    assert_eq!(all, 5, "без фільтрів — весь реєстр");
+    assert_eq!(pdfs, 3, "з фільтром формату — лише pdf");
+}
+
+#[test]
+fn count_ignores_limit_and_offset() {
+    let (_tmp, conn) = setup();
+    for i in 1..=5 {
+        insert_object(&conn, &format!("doc{i}"), Some("pdf"), &format!("2026-01-1{i}T10:00:00+00:00"), 100);
+    }
+    let f = SearchFilters { limit: Some(2), offset: Some(2), ..Default::default() };
+    assert_eq!(count_archive_objects_filtered(&conn, &f).unwrap(), 5,
+        "count мусить рахувати ВСІ збіги, а не сторінку");
+}
+
+#[test]
+fn limit_and_offset_return_page_slice_newest_first() {
+    let (_tmp, conn) = setup();
+    insert_object(&conn, "january", Some("pdf"), "2026-01-15T10:00:00+00:00", 100);
+    insert_object(&conn, "february", Some("pdf"), "2026-02-15T10:00:00+00:00", 100);
+    insert_object(&conn, "march", Some("pdf"), "2026-03-15T10:00:00+00:00", 100);
+    insert_object(&conn, "april", Some("pdf"), "2026-04-15T10:00:00+00:00", 100);
+    insert_object(&conn, "may", Some("pdf"), "2026-05-15T10:00:00+00:00", 100);
+
+    // Сторінка 0: два найновіші (травень, квітень)
+    let p0 = search_archive_objects_filtered(&conn, &SearchFilters {
+        limit: Some(2), offset: Some(0), ..Default::default()
+    }).unwrap();
+    assert_eq!(p0.len(), 2);
+    assert_eq!(p0[0].display_name, "may");
+    assert_eq!(p0[1].display_name, "april");
+
+    // Сторінка 1: наступні два (березень, лютий)
+    let p1 = search_archive_objects_filtered(&conn, &SearchFilters {
+        limit: Some(2), offset: Some(2), ..Default::default()
+    }).unwrap();
+    assert_eq!(p1.len(), 2);
+    assert_eq!(p1[0].display_name, "march");
+    assert_eq!(p1[1].display_name, "february");
+
+    // «Хвостова» сторінка: лишається один документ
+    let p2 = search_archive_objects_filtered(&conn, &SearchFilters {
+        limit: Some(2), offset: Some(4), ..Default::default()
+    }).unwrap();
+    assert_eq!(p2.len(), 1);
+    assert_eq!(p2[0].display_name, "january");
+}
+
+#[test]
+fn zero_limit_falls_back_to_default() {
+    let (_tmp, conn) = setup();
+    for i in 1..=3 {
+        insert_object(&conn, &format!("doc{i}"), Some("pdf"), &format!("2026-01-1{i}T10:00:00+00:00"), 100);
+    }
+    // limit 0 = «не вказано» → дефолтні 50, тобто побачимо всі 3
+    let result = search_archive_objects_filtered(&conn, &SearchFilters {
+        limit: Some(0), ..Default::default()
+    }).unwrap();
+    assert_eq!(result.len(), 3);
+}
+

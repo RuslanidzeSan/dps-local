@@ -82,6 +82,8 @@ export default function App() {
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [filterMinKb, setFilterMinKb] = useState<string>("");
   const [filterMaxKb, setFilterMaxKb] = useState<string>("");
+  const [page, setPage] = useState<number>(0);
+  const [totalObjects, setTotalObjects] = useState<number>(0);
   const [fixityReport, setFixityReport] = useState<FixityReport | null>(null);
 
   // CRUD стани
@@ -107,24 +109,35 @@ export default function App() {
   // Чи включати підпапки при імпорті каталогу
   const [recursiveIngest, setRecursiveIngest] = useState<boolean>(false);
 
+  const PAGE_SIZE = 50;
+
+  // Єдине місце, де збираються всі фільтри (для списку і для підрахунку)
+  const buildFilters = () => ({
+    query: searchQuery || null,
+    tag_id: filterTagId || null,
+    person_id: filterPersonId || null,
+    location_id: filterLocationId || null,
+    extension: filterExt.trim() || null,
+    date_from: filterDateFrom || null,
+    date_to: filterDateTo || null,
+    min_size: Number.isFinite(Number(filterMinKb)) && filterMinKb.trim() !== ""
+      ? Math.round(Number(filterMinKb) * 1024) : null,
+    max_size: Number.isFinite(Number(filterMaxKb)) && filterMaxKb.trim() !== ""
+      ? Math.round(Number(filterMaxKb) * 1024) : null,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  });
+
   const fetchFilteredObjects = async () => {
     try {
-      const res = await invoke<ArchiveObject[]>("search_objects_v2", {
-        filters: {
-          query: searchQuery || null,
-          tag_id: filterTagId || null,
-          person_id: filterPersonId || null,
-          location_id: filterLocationId || null,
-          extension: filterExt.trim() || null,
-          date_from: filterDateFrom || null,
-          date_to: filterDateTo || null,
-          min_size: Number.isFinite(Number(filterMinKb)) && filterMinKb.trim() !== ""
-            ? Math.round(Number(filterMinKb) * 1024) : null,
-          max_size: Number.isFinite(Number(filterMaxKb)) && filterMaxKb.trim() !== ""
-            ? Math.round(Number(filterMaxKb) * 1024) : null,
-        },
-      });
+      const filters = buildFilters();
+      const res = await invoke<ArchiveObject[]>("search_objects_v2", { filters });
       setObjects(res);
+      // Загальна кількість збігів (без пагінації) — щоб порахувати сторінки
+      const total = await invoke<number>("count_objects_command", {
+        filters: { ...filters, limit: null, offset: null },
+      });
+      setTotalObjects(total);
       // Оновлюємо вибраний об'єкт, якщо він змінився
       if (selectedObject) {
         const updated = res.find(o => o.id === selectedObject.id);
@@ -134,6 +147,8 @@ export default function App() {
       console.error("Помилка пошуку:", err);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(totalObjects / PAGE_SIZE));
 
   const fetchMetadata = async (objectId: string) => {
     try {
@@ -155,7 +170,14 @@ export default function App() {
   useEffect(() => {
     fetchFilteredObjects();
     fetchAllData();
-    }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb]);
+  }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
+      filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, page]);
+
+  // Зміна будь-якого фільтра скидає реєстр на першу сторінку
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
+      filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb]);
 
   const handleRowClick = (obj: ArchiveObject) => {
     setSelectedObject(obj);
@@ -553,7 +575,7 @@ export default function App() {
 
           <div style={{ display: "flex", gap: "2rem" }}>
             <div style={{ flex: 1.5 }}>
-              <h2>Список документів ({objects.length})</h2>
+              <h2>Список документів ({totalObjects})</h2>
               {objects.length === 0 ? <p style={{ color: "#777" }}>Нічого не знайдено за заданими критеріями.</p> : (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem", textAlign: "left", background: "#fff" }}>
                   <thead>
@@ -574,8 +596,26 @@ export default function App() {
                   </tbody>
                 </table>
               )}
+                <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
+                <button
+                  onClick={() => setPage(p => p - 1)}
+                  disabled={page === 0}
+                  style={{ padding: "6px 14px", background: page === 0 ? "#ccc" : "#007bff", color: "#fff", border: "none", borderRadius: "4px", cursor: page === 0 ? "default" : "pointer" }}
+                >
+                  ‹ Назад
+                </button>
+                <span style={{ fontSize: "0.9rem", color: "#555" }}>
+                  Сторінка {page + 1} з {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={page + 1 >= totalPages}
+                  style={{ padding: "6px 14px", background: page + 1 >= totalPages ? "#ccc" : "#007bff", color: "#fff", border: "none", borderRadius: "4px", cursor: page + 1 >= totalPages ? "default" : "pointer" }}
+                >
+                  Вперед ›
+                </button>
+             </div>
             </div>
-
             <div style={{ flex: 1.2, background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
               <h2>Картка документа</h2>
               {selectedObject ? (
