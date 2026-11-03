@@ -19,6 +19,21 @@ async fn ingest_file(_app: AppHandle, source_path: String) -> Result<services::i
 }
 
 #[tauri::command]
+fn create_backup_command(backup_dir: String) -> Result<String, String> {
+    let path = services::backup::create_backup_default(std::path::Path::new(&backup_dir))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn restore_backup_command(backup_path: String) -> Result<(), String> {
+    services::backup::restore_backup_at(
+        std::path::Path::new(&backup_path),
+        &db::get_database_path(),
+        &db::get_storage_dir(),
+    )
+}
+
+#[tauri::command]
 async fn ingest_directory_command(
     _app: AppHandle,
     dir_path: String,
@@ -291,6 +306,8 @@ pub fn run() {
             export_objects_csv_command,
             export_objects_json_command,
             index_reference_file,
+            create_backup_command,
+            restore_backup_command,
             reconcile_reference_locations,
             get_archive_objects, 
             get_object_tags, 

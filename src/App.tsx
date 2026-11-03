@@ -11,7 +11,7 @@ interface ArchiveObject {
   file_path: string;
   file_size_bytes: number;
   checksum_sha256: string;
-  storage_type: string;   // 'managed' | 'reference' — додаємо
+  storage_type: string;   // 'managed' | 'reference'
   is_accessible: boolean; // для reference: чи існує файл за шляхом
   created_at: string;
 }
@@ -34,7 +34,7 @@ export default function App() {
 
   const [objects, setObjects] = useState<ArchiveObject[]>([]);
   const [selectedObject, setSelectedObject] = useState<ArchiveObject | null>(null);
-  
+
   // Довільний опис поточного вибраного документа
   const [description, setDescription] = useState<string>("");
 
@@ -74,7 +74,7 @@ export default function App() {
 
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  // Режим додавання: 'managed' — копія в архів, 'reference' — лише посилання  
+  // Режим додавання: 'managed' — копія в архів, 'reference' — лише посилання
   const [ingestMode, setIngestMode] = useState<"managed" | "reference">("managed");
   // Чи включати підпапки при імпорті каталогу
   const [recursiveIngest, setRecursiveIngest] = useState<boolean>(false);
@@ -201,7 +201,7 @@ export default function App() {
       const filePath = Array.isArray(selected) ? selected[0] : selected;
       if (!filePath) return;
 
-       setLoading(true);
+      setLoading(true);
       if (ingestMode === "reference") {
         setStatus("Індексація зовнішнього файлу (без копіювання)...");
         await invoke("index_reference_file", { sourcePath: filePath });
@@ -263,6 +263,79 @@ export default function App() {
     }
   };
 
+  // Експорт CSV: результат від бекенду → файл через Blob
+  const handleExportCsv = async () => {
+    try {
+      const csv = await invoke<string>("export_objects_csv_command");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `archive_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("Експорт CSV завершено!");
+    } catch (err: any) {
+      setStatus(`Помилка експорту CSV: ${String(err)}`);
+    }
+  };
+
+  // Експорт JSON: результат від бекенду → файл через Blob
+  const handleExportJson = async () => {
+    try {
+      const json = await invoke<string>("export_objects_json_command");
+      const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `archive_export_${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("Експорт JSON завершено!");
+    } catch (err: any) {
+      setStatus(`Помилка експорту JSON: ${String(err)}`);
+    }
+  };
+
+  // Резервне копіювання: обираємо папку, КУДИ покласти копію
+  // (усередині буде створена dps-backup-<дата-час>/ з базою, storage/ та manifest.json)
+  const handleCreateBackup = async () => {
+    try {
+      const dir = await open({ directory: true, multiple: false });
+      if (!dir) return;
+      setLoading(true);
+      setStatus("Створення резервної копії...");
+      const createdPath = await invoke<string>("create_backup_command", {
+        backupDir: dir as string,
+      });
+      setStatus(`✅ Копію створено: ${createdPath}`);
+    } catch (err: any) {
+      setStatus(`Помилка копіювання: ${String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Відновлення: обираємо САМУ папку копії dps-backup-... (де лежить manifest.json)
+  const handleRestoreBackup = async () => {
+    try {
+      const dir = await open({ directory: true, multiple: false });
+      if (!dir) return;
+      if (!confirm("Відновити архів із цієї копії? Поточна база буде замінена даними з копії.")) return;
+      setLoading(true);
+      setStatus("Відновлення архіву...");
+      await invoke("restore_backup_command", { backupPath: dir as string });
+      setSelectedObject(null);
+      await fetchFilteredObjects();
+      fetchAllData();
+      setStatus("✅ Архів відновлено з копії.");
+    } catch (err: any) {
+      setStatus(`Помилка відновлення: ${String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: "1250px", margin: "0 auto" }}>
       <h1>dps-local: Цифровий Архів</h1>
@@ -279,6 +352,7 @@ export default function App() {
 
       {activeTab === "archive" && (
         <>
+          {/* ПАНЕЛЬ ДІЙ НАД АРХІВОМ */}
           <div style={{ marginBottom: "1rem", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
               <button
@@ -291,20 +365,9 @@ export default function App() {
               >Режим: лише посилання</button>
             </div>
             <button onClick={handleSelectAndIngest} disabled={loading} style={{ padding: "0.6rem 1.2rem", fontSize: "1rem", cursor: "pointer", background: ingestMode === "reference" ? "#fd7e14" : "#28a745", color: "#fff", border: "none", borderRadius: "4px" }}>
-              {loading ? "Збереження..." : (ingestMode === "reference" ? "🔗 Проіндексувати посиланням" : "📥 Завантажити файл в архів")}</button>
-            <button
-              onClick={handleSelectDirectory}
-              disabled={loading}
-              style={{
-                padding: "0.6rem 1rem",
-                cursor: "pointer",
-                background: "#6f42c1",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-              }}
-            >
-              <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.9rem" }}>
+              {loading ? "Збереження..." : (ingestMode === "reference" ? "🔗 Проіндексувати посиланням" : "📥 Завантажити файл в архів")}
+            </button>
+            <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.9rem", cursor: "pointer" }}>
               <input
                 type="checkbox"
                 checked={recursiveIngest}
@@ -312,82 +375,26 @@ export default function App() {
               />
               Включно з підпапками
             </label>
-            <button
-              onClick={handleSelectDirectory}
-              disabled={loading}
-              style={{
-                padding: "0.6rem 1rem",
-                cursor: "pointer",
-                background: "#6f42c1",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-              }}
-            >
+            <button onClick={handleSelectDirectory} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#6f42c1", color: "#fff", border: "none", borderRadius: "4px" }}>
               📁 Імпортувати каталог
-            </button>
             </button>
             <button onClick={handleReconcile} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px" }}>
               🔎 Перевірити посилання
             </button>
-            {status && <span style={{ color: "#555" }}>{status}</span>}
-          </div>
-
-             <button
-              onClick={async () => {
-                try {
-                  const csv = await invoke<string>("export_objects_csv_command");
-                  // Створюємо Blob і завантажуємо файл
-                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = `archive_export_${new Date().toISOString().slice(0,10)}.csv`;
-                  link.click();
-                  URL.revokeObjectURL(url);
-                  setStatus("Експорт CSV завершено!");
-                } catch (err: any) {
-                  setStatus(`Помилка експорту: ${String(err)}`);
-                }
-              }}
-              style={{
-                padding: "0.6rem 1rem",
-                cursor: "pointer",
-                background: "#20c997",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-              }}
-            >
+            <button onClick={handleExportCsv} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#20c997", color: "#fff", border: "none", borderRadius: "4px" }}>
               📊 Експорт CSV
             </button>
-            <button
-              onClick={async () => {
-                try {
-                  const json = await invoke<string>("export_objects_json_command");
-                  const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = `archive_export_${new Date().toISOString().slice(0,10)}.json`;
-                  link.click();
-                  URL.revokeObjectURL(url);
-                  setStatus("Експорт JSON завершено!");
-                } catch (err: any) {
-                  setStatus(`Помилка експорту: ${String(err)}`);
-                }
-              }}
-              style={{
-                padding: "0.6rem 1rem",
-                cursor: "pointer",
-                background: "#6610f2",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-              }}
-            >
+            <button onClick={handleExportJson} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#6610f2", color: "#fff", border: "none", borderRadius: "4px" }}>
               📋 Експорт JSON
             </button>
+            <button onClick={handleCreateBackup} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#0d6efd", color: "#fff", border: "none", borderRadius: "4px" }}>
+              💾 Резервна копія
+            </button>
+            <button onClick={handleRestoreBackup} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#dc3545", color: "#fff", border: "none", borderRadius: "4px" }}>
+              ♻️ Відновити з копії
+            </button>
+            {status && <span style={{ color: "#555" }}>{status}</span>}
+          </div>
 
           {/* ПАНЕЛЬ РОЗШИРЕНОГО ПОШУКУ ТА ФІЛЬТРАЦІЇ */}
           <div style={{ background: "#eef2f5", padding: "12px", borderRadius: "8px", marginBottom: "1.5rem", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
@@ -502,7 +509,7 @@ export default function App() {
                     <input type="text" placeholder="Додати тег..." value={newTag} onChange={(e) => setNewTag(e.target.value)} style={{ padding: "4px", flex: 1 }} />
                     <button type="submit" style={{ padding: "4px 8px" }}>+</button>
                   </form>
-                  
+
                   <h4>Персоналії</h4>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.5rem" }}>
                     {persons.map((p, i) => <span key={i} style={{ background: "#d1e7dd", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem" }}>👤 {p}</span>)}
