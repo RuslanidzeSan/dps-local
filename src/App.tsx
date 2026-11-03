@@ -63,6 +63,11 @@ export default function App() {
   const [filterTagId, setFilterTagId] = useState<string>("");
   const [filterPersonId, setFilterPersonId] = useState<string>("");
   const [filterLocationId, setFilterLocationId] = useState<string>("");
+  const [filterExt, setFilterExt] = useState<string>("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [filterMinKb, setFilterMinKb] = useState<string>("");
+  const [filterMaxKb, setFilterMaxKb] = useState<string>("");
 
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -89,11 +94,20 @@ export default function App() {
 
   const fetchFilteredObjects = async () => {
     try {
-      const res = await invoke<ArchiveObject[]>("search_objects_filtered", {
-        query: searchQuery || null,
-        tagId: filterTagId || null,
-        personId: filterPersonId || null,
-        locationId: filterLocationId || null,
+      const res = await invoke<ArchiveObject[]>("search_objects_v2", {
+        filters: {
+          query: searchQuery || null,
+          tag_id: filterTagId || null,
+          person_id: filterPersonId || null,
+          location_id: filterLocationId || null,
+          extension: filterExt.trim() || null,
+          date_from: filterDateFrom || null,
+          date_to: filterDateTo || null,
+          min_size: Number.isFinite(Number(filterMinKb)) && filterMinKb.trim() !== ""
+            ? Math.round(Number(filterMinKb) * 1024) : null,
+          max_size: Number.isFinite(Number(filterMaxKb)) && filterMaxKb.trim() !== ""
+            ? Math.round(Number(filterMaxKb) * 1024) : null,
+        },
       });
       setObjects(res);
       // Оновлюємо вибраний об'єкт, якщо він змінився
@@ -126,7 +140,7 @@ export default function App() {
   useEffect(() => {
     fetchFilteredObjects();
     fetchAllData();
-  }, [searchQuery, filterTagId, filterPersonId, filterLocationId]);
+    }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb]);
 
   const handleRowClick = (obj: ArchiveObject) => {
     setSelectedObject(obj);
@@ -417,12 +431,12 @@ export default function App() {
 
           {/* ПАНЕЛЬ РОЗШИРЕНОГО ПОШУКУ ТА ФІЛЬТРАЦІЇ */}
           <div style={{ background: "#eef2f5", padding: "12px", borderRadius: "8px", marginBottom: "1.5rem", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-            <strong>🔍 Фільтри реєстру:</strong>
-            <input 
-              type="text" 
-              placeholder="Пошук за назвою..." 
-              value={searchQuery} 
-              onChange={e => setSearchQuery(e.target.value)} 
+                        <strong>🔍 Фільтри реєстру:</strong>
+            <input
+              type="text"
+              placeholder="Пошук за назвою..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               style={{ padding: "6px", width: "220px", borderRadius: "4px", border: "1px solid #ccc" }}
             />
             <select value={filterTagId} onChange={e => setFilterTagId(e.target.value)} style={{ padding: "6px", borderRadius: "4px" }}>
@@ -437,9 +451,28 @@ export default function App() {
               <option value="">Всі локації</option>
               {allLocations.map(l => <option key={l.id} value={l.id}>📍 {l.location_name}</option>)}
             </select>
-            {(searchQuery || filterTagId || filterPersonId || filterLocationId) && (
-              <button 
-                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); }}
+            <input
+              type="text"
+              placeholder="Формат (pdf, jpg...)"
+              value={filterExt}
+              onChange={e => setFilterExt(e.target.value)}
+              style={{ padding: "6px", width: "140px", borderRadius: "4px", border: "1px solid #ccc" }}
+            />
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              від <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              до <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              розмір від <input type="number" min="0" placeholder="КБ" value={filterMinKb} onChange={e => setFilterMinKb(e.target.value)} style={{ padding: "5px", width: "80px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              до <input type="number" min="0" placeholder="КБ" value={filterMaxKb} onChange={e => setFilterMaxKb(e.target.value)} style={{ padding: "5px", width: "80px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
+            {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb) && (
+              <button
+                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); }}
                 style={{ padding: "6px 10px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
               >
                 Скинути фільтри

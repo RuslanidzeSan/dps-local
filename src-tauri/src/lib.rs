@@ -305,6 +305,15 @@ async fn search_objects_filtered(
 }
 
 #[tauri::command]
+async fn search_objects_v2(
+    _app: AppHandle,
+    filters: services::search::SearchFilters,
+) -> Result<Vec<services::ingest::ArchiveObjectView>, String> {
+    let conn = db::open_database()?;
+    services::search::search_archive_objects_filtered(&conn, &filters)
+}
+
+#[tauri::command]
 async fn update_object_description_handler(_app: AppHandle, object_id: String, description: String) -> Result<(), String> {
     let mut conn = db::open_database()?;
     services::ingest::update_object_description(&mut conn, &object_id, &description)
@@ -357,6 +366,7 @@ pub fn run() {
             merge_locations_handler,
             get_audit_logs_modal,
             search_objects_filtered,
+            search_objects_v2,
             update_object_description_handler,
             verify_object_integrity
         ])

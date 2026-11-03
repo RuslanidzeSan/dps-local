@@ -124,11 +124,16 @@ pub fn update_object_description(conn: &mut Connection, object_id: &str, descrip
 }
 
 pub fn search_archive_objects(conn:&Connection,query:Option<&str>,tag_id:Option<&str>,person_id:Option<&str>,location_id:Option<&str>)->Result<Vec<ArchiveObjectView>,String>{
-    let mut sql=String::from("SELECT DISTINCT o.id,o.display_name,o.status,o.description,s.file_path,s.file_size_bytes,COALESCE(s.checksum_sha256,''),s.storage_type,s.is_accessible,o.created_at FROM archive_objects o JOIN representations r ON r.object_id=o.id JOIN storage_locations s ON s.representation_id=r.id LEFT JOIN map_file_tags mt ON mt.file_id=o.id LEFT JOIN map_file_persons mp ON mp.file_id=o.id LEFT JOIN map_file_locations ml ON ml.file_id=o.id WHERE o.status!='Destroyed'"); let mut args:Vec<String>=vec![];
-    if let Some(q)=query.filter(|x|!x.trim().is_empty()){sql.push_str(" AND (o.display_name LIKE ? OR o.original_name LIKE ? OR o.description LIKE ? OR o.file_extension LIKE ?)");let p=format!("%{}%",q.trim());args.extend([p.clone(),p.clone(),p.clone(),p]);}
-    for (value,column) in [(tag_id,"mt.tag_id"),(person_id,"mp.person_id"),(location_id,"ml.location_id")] {if let Some(v)=value.filter(|x|!x.is_empty()){sql.push_str(&format!(" AND {column}=?"));args.push(v.into());}}
-    sql.push_str(" ORDER BY o.created_at DESC LIMIT 100");let mut stmt=conn.prepare(&sql).map_err(|e|e.to_string())?;
-    stmt.query_map(rusqlite::params_from_iter(args),|r|Ok(ArchiveObjectView{id:r.get(0)?,display_name:r.get(1)?,status:r.get(2)?,description:r.get(3)?,file_path:r.get(4)?,file_size_bytes:r.get(5)?,checksum_sha256:r.get(6)?,storage_type:r.get(7)?,is_accessible:r.get::<_,i64>(8)? != 0,created_at:r.get(9)?})).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())
+    // Простіше пошукова функція: збирає параметри в структуру і передає
+    // роботу новому універсальному пошуку, щоб SQL жив лише в одному місці.
+    let filters = super::search::SearchFilters{
+        query: query.map(|x| x.to_string()),
+        tag_id: tag_id.map(|x| x.to_string()),
+        person_id: person_id.map(|x| x.to_string()),
+        location_id: location_id.map(|x| x.to_string()),
+        ..Default::default()
+    };
+    super::search::search_archive_objects_filtered(conn, &filters)
 }
 
 #[derive(serde::Serialize)] pub struct ArchiveObjectView {pub id:String,pub display_name:String,pub status:String,pub description:Option<String>,pub file_path:String,pub file_size_bytes:i64,pub checksum_sha256:String,pub storage_type:String,pub is_accessible:bool,pub created_at:String}
