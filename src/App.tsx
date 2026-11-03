@@ -31,8 +31,10 @@ interface AuditLogDTO {
 }
 interface IngestResult { object_id: string; duplicate_detected: boolean; }
 
+type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit";
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"archive" | "tags" | "persons" | "locations" | "exports" | "audit">("archive");
+  const [activeTab, setActiveTab] = useState<TabType>("archive");
 
   const [objects, setObjects] = useState<ArchiveObject[]>([]);
   const [selectedObject, setSelectedObject] = useState<ArchiveObject | null>(null);
@@ -363,6 +365,7 @@ export default function App() {
         <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "tags" ? "#007bff" : "#f1f1f1", color: activeTab === "tags" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>🏷️ Довідник тегів</button>
         <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "persons" ? "#007bff" : "#f1f1f1", color: activeTab === "persons" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>👤 Довідник осіб</button>
         <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "locations" ? "#007bff" : "#f1f1f1", color: activeTab === "locations" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📍 Довідник локацій</button>
+        <button onClick={() => { setActiveTab("exports"); fetchExports(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "exports" ? "#007bff" : "#f1f1f1", color: activeTab === "exports" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📤 Експорти</button>
         <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "audit" ? "#007bff" : "#f1f1f1", color: activeTab === "audit" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📜 Журнал аудиту</button>
       </div>
 
@@ -508,8 +511,6 @@ export default function App() {
                   }} style={{ padding: "4px 10px", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem", marginLeft: "5px" }}>
                    📂 Показати у теці
                   </button>
-
-                  <button onClick={() => { setActiveTab("exports"); fetchExports(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "exports" ? "#007bff" : "#f1f1f1", color: activeTab === "exports" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📤 Експорти</button>
 
                   {/* ДОВІЛЬНИЙ ОПИС */}
                   <h4 style={{ marginTop: "1rem" }}>Довільний опис документа</h4>
@@ -694,7 +695,7 @@ export default function App() {
         </div>
       )}
 
-            {/* ВКЛАДКА: ЕКСПОРТИ */}
+      {/* ВКЛАДКА: ЕКСПОРТИ */}
       {activeTab === "exports" && (
         <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
           <h2>📤 Згенеровані файли експортів</h2>
