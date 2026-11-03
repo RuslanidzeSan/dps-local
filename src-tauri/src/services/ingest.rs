@@ -103,7 +103,7 @@ pub fn reconcile_reference_locations(conn: &mut Connection) -> Result<usize, Str
     Ok(changed)
 }
 
-fn sha256_file(path: &Path) -> Result<String, String> {
+pub fn sha256_file(path: &Path) -> Result<String, String> {
     let mut file = fs::File::open(path).map_err(|e| e.to_string())?; let mut hasher = Sha256::new(); let mut buffer=[0;8192];
     loop { let n=file.read(&mut buffer).map_err(|e|e.to_string())?; if n==0 {break;} hasher.update(&buffer[..n]); }
     Ok(hex::encode(hasher.finalize()))

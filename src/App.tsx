@@ -31,6 +31,20 @@ interface AuditLogDTO {
 }
 interface IngestResult { object_id: string; duplicate_detected: boolean; }
 
+interface FixityProblem {
+  object_id: string;
+  display_name: string;
+  file_path: string;
+  status: string; // 'mismatch' | 'missing' | 'unreadable'
+  expected_sha256: string;
+  actual_sha256: string;
+}
+interface FixityReport {
+  checked: number;
+  ok: number;
+  problems: FixityProblem[];
+}
+
 type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit";
 
 export default function App() {
@@ -68,6 +82,7 @@ export default function App() {
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [filterMinKb, setFilterMinKb] = useState<string>("");
   const [filterMaxKb, setFilterMaxKb] = useState<string>("");
+  const [fixityReport, setFixityReport] = useState<FixityReport | null>(null);
 
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -329,6 +344,23 @@ export default function App() {
     }
   };
 
+  // Перевірка цілісності ВСЬОГО архіву: перерахунок SHA-256 кожного managed-файлу
+  const handleFullFixity = async () => {
+    try {
+      setLoading(true);
+      setFixityReport(null);
+      setStatus("🩺 Перевірка цілісності всього архіву... Це може зайняти деякий час.");
+      const report = await invoke<FixityReport>("verify_archive_fixity_command");
+      setFixityReport(report);
+      setStatus(`🩺 Перевірено ${report.checked} файлів: цілих ${report.ok}, проблем ${report.problems.length}.`);
+      fetchAllData();
+    } catch (err: any) {
+      setStatus(`Помилка перевірки архіву: ${String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Резервне копіювання: обираємо папку, КУДИ покласти копію
   // (усередині буде створена dps-backup-<дата-час>/ з базою, storage/ та manifest.json)
   const handleCreateBackup = async () => {
@@ -414,6 +446,9 @@ export default function App() {
             <button onClick={handleReconcile} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px" }}>
               🔎 Перевірити посилання
             </button>
+            <button onClick={handleFullFixity} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#e83e8c", color: "#fff", border: "none", borderRadius: "4px" }}>
+              🩺 Перевірити весь архів
+            </button>
             <button onClick={handleExportCsv} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#20c997", color: "#fff", border: "none", borderRadius: "4px" }}>
               📊 Експорт CSV
             </button>
@@ -428,6 +463,42 @@ export default function App() {
             </button>
             {status && <span style={{ color: "#555" }}>{status}</span>}
           </div>
+
+          {/* ЗВІТ FIXITY-ПЕРЕВІРКИ ВСЬОГО АРХІВУ */}
+          {fixityReport && (
+            <div style={{ background: fixityReport.problems.length ? "#f8d7da" : "#d4edda", border: `1px solid ${fixityReport.problems.length ? "#dc3545" : "#28a745"}`, padding: "12px", borderRadius: "8px", marginBottom: "1.5rem" }}>
+              <strong>
+                {fixityReport.problems.length === 0
+                  ? `✅ Архів цілий: усі ${fixityReport.checked} файлів відповідають контрольним сумам`
+                  : `⚠️ Знайдено ${fixityReport.problems.length} проблем(и) з ${fixityReport.checked} перевірених файлів:`}
+              </strong>
+              {fixityReport.problems.length > 0 && (
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "8px", background: "#fff" }}>
+                  <thead>
+                    <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+                      <th style={{ padding: "6px" }}>Документ</th>
+                      <th style={{ padding: "6px" }}>Проблема</th>
+                      <th style={{ padding: "6px" }}>Шлях</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fixityReport.problems.map(p => (
+                      <tr key={p.object_id} style={{ borderBottom: "1px solid #eee" }}>
+                        <td style={{ padding: "6px" }}>{p.display_name}</td>
+                        <td style={{ padding: "6px" }}>
+                          {p.status === "missing" ? "❌ Файл зник" : p.status === "mismatch" ? "⚠️ Сума не збігається (файл пошкоджено або замінено)" : `❌ Не вдалося прочитати: ${p.actual_sha256}`}
+                        </td>
+                        <td style={{ padding: "6px", fontSize: "0.8rem", wordBreak: "break-all" }}>{p.file_path}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <button onClick={() => setFixityReport(null)} style={{ marginTop: "8px", padding: "4px 10px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+                Закрити звіт
+              </button>
+            </div>
+          )}
 
           {/* ПАНЕЛЬ РОЗШИРЕНОГО ПОШУКУ ТА ФІЛЬТРАЦІЇ */}
           <div style={{ background: "#eef2f5", padding: "12px", borderRadius: "8px", marginBottom: "1.5rem", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>

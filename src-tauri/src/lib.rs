@@ -325,6 +325,14 @@ async fn verify_object_integrity(_app: AppHandle, object_id: String) -> Result<b
     services::ingest::verify_object_integrity(&conn, &object_id)
 }
 
+#[tauri::command]
+async fn verify_archive_fixity_command(
+    _app: AppHandle,
+) -> Result<services::fixity::FixityReport, String> {
+    let conn = db::open_database()?;
+    services::fixity::verify_archive_fixity(&conn)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -346,6 +354,7 @@ pub fn run() {
             save_export_command,
             list_exports_command,
             rename_export_command,
+            verify_archive_fixity_command,
             export_archive_csv,
             export_archive_json,
             get_object_persons,

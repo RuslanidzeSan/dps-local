@@ -6,3 +6,4 @@ pub mod audit;
 pub mod export;
 pub mod backup;
 pub mod search;
+pub mod fixity;
