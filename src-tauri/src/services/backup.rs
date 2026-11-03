@@ -25,6 +25,13 @@ pub fn create_backup_at(db_path: &Path, storage_dir: &Path, backup_dir: &Path) -
     let backup_storage = backup_path.join("storage");
     copy_dir_recursive(storage_dir, &backup_storage)?;
 
+    // Експорти лежать поруч з базою — копіюємо їх також
+    // (якщо теки exports/ немає, copy_dir_recursive нічого не робить)
+    if let Some(data_dir) = db_path.parent() {
+        let exports_dir = data_dir.join("exports");
+        copy_dir_recursive(&exports_dir, &backup_path.join("exports"))?;
+    }
+
     // 4) manifest.json — «паспорт» копії
     let files_count = count_files(&backup_storage);
     let manifest = serde_json::json!({

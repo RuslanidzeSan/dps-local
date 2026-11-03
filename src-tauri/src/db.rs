@@ -22,6 +22,13 @@ pub fn get_storage_dir() -> PathBuf {
     path
 }
 
+pub fn get_exports_dir() -> PathBuf {
+    let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    path.push(".dps-local");
+    path.push("exports");
+    path
+}
+
 pub fn open_database() -> Result<Connection, String> { open_database_at(&get_database_path()) }
 
 pub fn open_database_at(path: &Path) -> Result<Connection, String> {

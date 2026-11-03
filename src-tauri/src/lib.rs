@@ -59,6 +59,28 @@ async fn export_objects_json_command() -> Result<String, String> {
 }
 
 #[tauri::command]
+fn save_export_command(kind: String) -> Result<String, String> {
+    let conn = db::open_database()?;
+    let content = match kind.as_str() {
+        "csv" => services::export::export_objects_csv(&conn)?,
+        "json" => services::export::export_objects_json(&conn)?,
+        other => return Err(format!("Невідомий тип експорту: {other}")),
+    };
+    let path = services::export::save_export_at(&db::get_exports_dir(), &kind, &content)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn list_exports_command() -> Result<Vec<services::export::ExportInfoDTO>, String> {
+    services::export::list_exports_at(&db::get_exports_dir())
+}
+
+#[tauri::command]
+fn rename_export_command(old_name: String, new_name: String) -> Result<(), String> {
+    services::export::rename_export_at(&db::get_exports_dir(), &old_name, &new_name)
+}
+
+#[tauri::command]
 async fn index_reference_file(_app: AppHandle, source_path: String) -> Result<services::ingest::IngestResult, String> {
     let mut conn = db::open_database()?;
     services::ingest::index_reference(&mut conn, &PathBuf::from(source_path), db::LOCAL_USER_ID)
@@ -312,6 +334,9 @@ pub fn run() {
             get_archive_objects, 
             get_object_tags, 
             add_tag_to_object,
+            save_export_command,
+            list_exports_command,
+            rename_export_command,
             export_archive_csv,
             export_archive_json,
             get_object_persons,

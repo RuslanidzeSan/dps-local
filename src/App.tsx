@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
+import { revealItemInDir, openPath } from "@tauri-apps/plugin-opener";
 
 interface ArchiveObject {
   id: string;
@@ -19,6 +20,7 @@ interface ArchiveObject {
 interface TagInfoDTO { id: string; tag_name: string; created_at: string; usage_count: number; }
 interface PersonInfoDTO { id: string; person_name: string; created_at: string; usage_count: number; }
 interface LocationInfoDTO { id: string; location_name: string; created_at: string; usage_count: number; }
+interface ExportInfoDTO { name: string; path: string; size_bytes: number; modified_at: string; }
 
 interface AuditLogDTO {
   id: string;
@@ -30,7 +32,7 @@ interface AuditLogDTO {
 interface IngestResult { object_id: string; duplicate_detected: boolean; }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"archive" | "tags" | "persons" | "locations" | "audit">("archive");
+  const [activeTab, setActiveTab] = useState<"archive" | "tags" | "persons" | "locations" | "exports" | "audit">("archive");
 
   const [objects, setObjects] = useState<ArchiveObject[]>([]);
   const [selectedObject, setSelectedObject] = useState<ArchiveObject | null>(null);
@@ -49,6 +51,10 @@ export default function App() {
   const [allPersons, setAllPersons] = useState<PersonInfoDTO[]>([]);
   const [allLocations, setAllLocations] = useState<LocationInfoDTO[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogDTO[]>([]);
+
+  const [exportFiles, setExportFiles] = useState<ExportInfoDTO[]>([]);
+  const [renamingExport, setRenamingExport] = useState<string | null>(null); // path файла, який перейменовуємо
+  const [renameValue, setRenameValue] = useState<string>("");
 
   // Фільтри реєстру
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -124,6 +130,50 @@ export default function App() {
     setSelectedObject(obj);
     setDescription(obj.description || "");
     fetchMetadata(obj.id);
+  };
+
+  const fetchExports = async () => {
+    try {
+      setExportFiles(await invoke<ExportInfoDTO[]>("list_exports_command"));
+    } catch (err) { console.error(err); }
+  };
+
+  // Експорт: тепер файл пише Rust у exports/, фронтенд лише повідомляє шлях
+  const handleExportCsv = async () => {
+    try {
+      const path = await invoke<string>("save_export_command", { kind: "csv" });
+      setStatus(`✅ Експорт CSV збережено: ${path}`);
+      fetchExports();
+    } catch (err: any) { setStatus(`Помилка експорту CSV: ${String(err)}`); }
+  };
+
+  const handleExportJson = async () => {
+    try {
+      const path = await invoke<string>("save_export_command", { kind: "json" });
+      setStatus(`✅ Експорт JSON збережено: ${path}`);
+      fetchExports();
+    } catch (err: any) { setStatus(`Помилка експорту JSON: ${String(err)}`); }
+  };
+
+  const handleRenameExport = async (oldName: string) => {
+    try {
+      await invoke("rename_export_command", { oldName, newName: renameValue });
+      setRenamingExport(null); setRenameValue("");
+      fetchExports();
+      setStatus("Файл перейменовано.");
+    } catch (err: any) { setStatus(`Помилка перейменування: ${String(err)}`); }
+  };
+
+  // Відкрити Finder і підсвітити файл
+  const handleRevealExport = async (path: string) => {
+    try { await revealItemInDir(path); }
+    catch (err: any) { setStatus(`Не вдалося відкрити теку: ${String(err)}`); }
+  };
+
+  // Відкрити сам файл у програмі за замовчуванням
+  const handleOpenExport = async (path: string) => {
+    try { await openPath(path); }
+    catch (err: any) { setStatus(`Не вдалося відкрити файл: ${String(err)}`); }
   };
 
   // Збереження довільного опису документа
@@ -260,40 +310,6 @@ export default function App() {
       fetchAllData();
     } catch (err: any) {
       setStatus(`Помилка перевірки посилань: ${String(err)}`);
-    }
-  };
-
-  // Експорт CSV: результат від бекенду → файл через Blob
-  const handleExportCsv = async () => {
-    try {
-      const csv = await invoke<string>("export_objects_csv_command");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `archive_export_${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-      setStatus("Експорт CSV завершено!");
-    } catch (err: any) {
-      setStatus(`Помилка експорту CSV: ${String(err)}`);
-    }
-  };
-
-  // Експорт JSON: результат від бекенду → файл через Blob
-  const handleExportJson = async () => {
-    try {
-      const json = await invoke<string>("export_objects_json_command");
-      const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `archive_export_${new Date().toISOString().slice(0, 10)}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-      setStatus("Експорт JSON завершено!");
-    } catch (err: any) {
-      setStatus(`Помилка експорту JSON: ${String(err)}`);
     }
   };
 
@@ -486,6 +502,15 @@ export default function App() {
                     Перевірити цілісність
                   </button>
 
+                  <button onClick={async () => {
+                    try { await revealItemInDir(selectedObject.file_path); }
+                      catch (err: any) { setStatus(`Не вдалося відкрити теку: ${String(err)}`); }
+                  }} style={{ padding: "4px 10px", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem", marginLeft: "5px" }}>
+                   📂 Показати у теці
+                  </button>
+
+                  <button onClick={() => { setActiveTab("exports"); fetchExports(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "exports" ? "#007bff" : "#f1f1f1", color: activeTab === "exports" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📤 Експорти</button>
+
                   {/* ДОВІЛЬНИЙ ОПИС */}
                   <h4 style={{ marginTop: "1rem" }}>Довільний опис документа</h4>
                   <textarea 
@@ -666,6 +691,62 @@ export default function App() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+            {/* ВКЛАДКА: ЕКСПОРТИ */}
+      {activeTab === "exports" && (
+        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
+          <h2>📤 Згенеровані файли експортів</h2>
+          <p style={{ color: "#666", fontSize: "0.9rem" }}>
+            Усі CSV/JSON-таблиці зберігаються у теці програми: ~/.dps-local/exports/
+          </p>
+          {exportFiles.length === 0 ? (
+            <p style={{ color: "#777" }}>Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Реєстр архіву».</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
+              <thead>
+                <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+                  <th style={{ padding: "10px" }}>Назва</th>
+                  <th style={{ padding: "10px" }}>Дата створення</th>
+                  <th style={{ padding: "10px" }}>Розмір</th>
+                  <th style={{ padding: "10px", textAlign: "right" }}>Дії</th>
+                </tr>
+              </thead>
+              <tbody>
+                {exportFiles.map(f => (
+                  <tr key={f.path} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "10px" }}>
+                      {renamingExport === f.path ? (
+                        <input
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          style={{ padding: "4px", width: "240px" }}
+                          autoFocus
+                        />
+                      ) : <strong>{f.name}</strong>}
+                    </td>
+                    <td style={{ padding: "10px", fontSize: "0.85rem" }}>{new Date(f.modified_at).toLocaleString()}</td>
+                    <td style={{ padding: "10px", fontSize: "0.85rem" }}>{f.size_bytes} байт</td>
+                    <td style={{ padding: "10px", textAlign: "right" }}>
+                      {renamingExport === f.path ? (
+                        <>
+                          <button onClick={() => handleRenameExport(f.name)} style={{ marginRight: "5px", background: "#28a745", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Зберегти</button>
+                          <button onClick={() => { setRenamingExport(null); setRenameValue(""); }} style={{ background: "#6c757d", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Скасувати</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => { setRenamingExport(f.path); setRenameValue(f.name); }} style={{ marginRight: "5px", background: "#ffc107", border: "none", padding: "4px 8px", cursor: "pointer" }}>✏️ Перейменувати</button>
+                          <button onClick={() => handleRevealExport(f.path)} style={{ marginRight: "5px", background: "#17a2b8", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>📂 Показати теку</button>
+                          <button onClick={() => handleOpenExport(f.path)} style={{ background: "#20c997", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Відкрити</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 

@@ -1,7 +1,88 @@
-//! Сервіс експорту метаданих архіву у CSV та JSON.
-
+use chrono::Utc;
 use rusqlite::Connection;
 use serde::Serialize;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+/// Одна строка вкладки «Експорти».
+#[derive(Serialize)]
+pub struct ExportInfoDTO {
+    pub name: String,
+    pub path: String,
+    pub size_bytes: u64,
+    pub modified_at: String, // RFC3339
+}
+
+/// Тека зберігання експортів: ~/.dps-local/exports/
+/// ВИЗНАЧЕНО В db.rs (див. 2.1а) — тут лише реекспорт для зручності.
+pub use crate::db::get_exports_dir;
+
+/// Записує файл експорту у теку. kind: "csv" | "json". Повертає шлях до файлу.
+pub fn save_export_at(exports_dir: &Path, kind: &str, content: &str) -> Result<PathBuf, String> {
+    let ext = match kind {
+        "csv" => "csv",
+        "json" => "json",
+        other => return Err(format!("Невідомий тип експорту: {other}")),
+    };
+    fs::create_dir_all(exports_dir).map_err(|e| e.to_string())?;
+    let stamp = Utc::now().format("%Y-%m-%d_%H-%M-%S");
+    // Не перезаписуємо існуючі файли: якщо ім'я вже зайняте — додаємо _1, _2, ...
+    let mut path = exports_dir.join(format!("export_{stamp}.{ext}"));
+    let mut counter = 1;
+    while path.exists() {
+        path = exports_dir.join(format!("export_{stamp}_{counter}.{ext}"));
+        counter += 1;
+    }
+    fs::write(&path, content).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
+/// Список файлів експортів, новіші — першими.
+pub fn list_exports_at(exports_dir: &Path) -> Result<Vec<ExportInfoDTO>, String> {
+    if !exports_dir.exists() {
+        return Ok(vec![]); // теки ще немає — експортів теж немає
+    }
+    let mut items: Vec<(std::time::SystemTime, ExportInfoDTO)> = Vec::new();
+    for entry in fs::read_dir(exports_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let meta = entry.metadata().map_err(|e| e.to_string())?;
+        if !meta.is_file() { continue; }
+        let modified = meta.modified().map_err(|e| e.to_string())?;
+        let modified_at: chrono::DateTime<Utc> = modified.into();
+        items.push((
+            modified,
+            ExportInfoDTO {
+                name: entry.file_name().to_string_lossy().to_string(),
+                path: entry.path().to_string_lossy().to_string(),
+                size_bytes: meta.len(),
+                modified_at: modified_at.to_rfc3339(),
+            },
+        ));
+    }
+    items.sort_by(|a, b| b.0.cmp(&a.0));
+    Ok(items.into_iter().map(|(_, dto)| dto).collect())
+}
+
+/// Перейменування файлу ВНУТРІШНІХ меж теки експортів.
+/// Відкидає: порожні імена, '/' та '\' (втеча з теки), існуючі назви.
+pub fn rename_export_at(exports_dir: &Path, old_name: &str, new_name: &str) -> Result<(), String> {
+    let clean = new_name.trim();
+    if clean.is_empty() {
+        return Err("Нова назва не може бути порожньою".into());
+    }
+    if clean.contains('/') || clean.contains('\\') || clean.contains("..") {
+        return Err("Назва не може містити символи шляху".into());
+    }
+    let old_path = exports_dir.join(old_name);
+    let new_path = exports_dir.join(clean);
+    if !old_path.exists() {
+        return Err("Файл не знайдено".into());
+    }
+    if new_path.exists() {
+        return Err("Файл з такою назвою вже існує".into());
+    }
+    fs::rename(&old_path, &new_path).map_err(|e| e.to_string())
+}
 
 #[derive(Serialize)]
 pub struct ExportObject {
