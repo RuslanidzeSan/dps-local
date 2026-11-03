@@ -121,6 +121,17 @@ impl StorageType {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ArchiveObjectSummary {
+    pub id: String,
+    pub display_name: String,
+    pub status: String,
+    pub file_path: String,
+    pub file_size_bytes: i64,
+    pub checksum_sha256: String,
+    pub created_at: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct StorageLocation {
     pub id: String, // UUID

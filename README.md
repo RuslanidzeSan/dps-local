@@ -1,7 +1,33 @@
-# Tauri + React + Typescript
+# DPS Local
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Локальна офлайн-програма цифрового архіву на Tauri, React, Rust і SQLite.
+Мережеві сервіси не потрібні для каталогу, managed-ingest, пошуку, перевірки
+SHA-256 та локального аудиту.
 
-## Recommended IDE Setup
+## Запуск і перевірка
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+```sh
+npm install
+npm run tauri dev
+npm test
+npm run build
+```
+
+`npm test` виконує перевірку TypeScript і Rust-інтеграційні тести. Для
+інсталятора використовуйте `npm run tauri build` після встановлення системних
+залежностей Tauri для цільової ОС.
+
+## Дані та резервне копіювання
+
+За замовчуванням база розташована у `~/.dps-local/archive.db`, а керовані
+копії — у `~/.dps-local/storage`. Перед резервним копіюванням закрийте
+програму, після чого скопіюйте всю папку `~/.dps-local` як є. Відновлення —
+це повернення цієї папки на те саме місце; після відновлення відкрийте картки
+та запустіть ручну перевірку цілісності важливих файлів.
+
+## Поточний MVP
+
+Реалізовано managed-ingest окремого файла, SHA-256, картки, теги/персони/
+локації, атрибутивний пошук, локальний append-only аудит та ручну fixity
+перевірку. Reference-only indexing, експорт CSV/JSON та імпорт каталогів ще
+не реалізовані.
