@@ -733,52 +733,47 @@ export default function App() {
                 <button onClick={() => setPage(p => p + 1)} disabled={page + 1 >= totalPages} className="btn">Вперед ›</button>
               </div>
             </div>
-            <div style={{ flex: 1.2, background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
+            <div className="inspector">
               <h2>Картка документа</h2>
               {selectedObject ? (
                 <div>
-                  <p><strong>Назва:</strong> {selectedObject.display_name}</p>
-                  <p><strong>Розмір:</strong> {selectedObject.file_size_bytes} байт</p>
+                  <p className="kv"><b>Назва:</b> {selectedObject.display_name}</p>
+                  <p className="kv"><b>Розмір:</b> {selectedObject.file_size_bytes} байт</p>
                   {selectedObject.storage_type === "reference" && (
-                    <p style={{ background: "#fff3cd", border: "1px solid #ffc107", padding: "6px 8px", borderRadius: "4px", fontSize: "0.85rem" }}>
+                    <div className="callout warn">
                       ⚠️ Зовнішнє посилання — оригінал не гарантовано збережений у сховищі архіву.
                       {!selectedObject.is_accessible && (
-                        <strong style={{ color: "#dc3545", display: "block", marginTop: "4px" }}>
+                        <strong className="inaccess">
                           ❌ Файл зараз НЕДОСТУПНИЙ за шляхом: {selectedObject.file_path}
                         </strong>
                       )}
-                    </p>
-                  )}
-                  {/* ХЕШ-СУМА ФАЙЛУ */}
-                  <div style={{ marginTop: "0.5rem", marginBottom: "1rem", wordBreak: "break-all" }}>
-                    <strong style={{ fontSize: "0.85rem", color: "#444" }}>Хеш-сума файла:</strong>
-                    <div style={{ background: "#eee", padding: "6px", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "monospace", color: "#333", marginTop: "2px" }}>
-                      {selectedObject.checksum_sha256 || "Не вказано"}
                     </div>
+                  )}
+
+                  {/* ХЕШ-СУМА ФАЙЛУ */}
+                  <div className="kv"><b>Хеш-сума файла:</b></div>
+                  <div className="hashbox">{selectedObject.checksum_sha256 || "Не вказано"}</div>
+
+                  <div className="actions">
+                    <button className="btn fixity" onClick={async () => {
+                      try {
+                        const ok = await invoke<boolean>("verify_object_integrity", { objectId: selectedObject.id });
+                        setStatus(ok ? "Перевірка цілісності успішна." : "УВАГА: контрольна сума не збігається.");
+                        fetchAllData();
+                      } catch (err) { setStatus(`Помилка перевірки цілісності: ${String(err)}`); }
+                    }}>Перевірити цілісність</button>
+                    <button className="btn" onClick={async () => {
+                      try { await revealItemInDir(selectedObject.file_path); }
+                        catch (err: any) { setStatus(`Не вдалося відкрити теку: ${String(err)}`); }
+                    }}>📂 Показати у теці</button>
                   </div>
-                  <button onClick={async () => {
-                    try {
-                      const ok = await invoke<boolean>("verify_object_integrity", { objectId: selectedObject.id });
-                      setStatus(ok ? "Перевірка цілісності успішна." : "УВАГА: контрольна сума не збігається.");
-                      fetchAllData();
-                    } catch (err) { setStatus(`Помилка перевірки цілісності: ${String(err)}`); }
-                  }} style={{ padding: "4px 10px", background: "#6f42c1", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem" }}>
-                    Перевірити цілісність
-                  </button>
 
-                  <button onClick={async () => {
-                    try { await revealItemInDir(selectedObject.file_path); }
-                      catch (err: any) { setStatus(`Не вдалося відкрити теку: ${String(err)}`); }
-                  }} style={{ padding: "4px 10px", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem", marginLeft: "5px" }}>
-                   📂 Показати у теці
-                  </button>
-
-                   {/* АРХІВНА КАРТКА v2 */}
-                  <h4 style={{ marginTop: "1rem" }}>📋 Архівна картка</h4>
+                  {/* АРХІВНА КАРТКА v2 */}
+                  <h4>📋 Архівна картка</h4>
                   {card && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1rem", fontSize: "0.85rem" }}>
+                    <div className="cardform">
                       <label>Тип файлу
-                        <input list="file-kind-options" value={card.file_kind || ""} onChange={e => setCardField("file_kind", e.target.value)} placeholder="Цифрове фото, скан, документ..." style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        <input list="file-kind-options" value={card.file_kind || ""} onChange={e => setCardField("file_kind", e.target.value)} placeholder="Цифрове фото, скан, документ..." />
                       </label>
                       <datalist id="file-kind-options">
                         <option value="Цифрове фото" />
@@ -787,71 +782,67 @@ export default function App() {
                         <option value="Оцифровлення" />
                       </datalist>
                       <label>Автор / оператор
-                        <input value={card.author || ""} onChange={e => setCardField("author", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        <input value={card.author || ""} onChange={e => setCardField("author", e.target.value)} />
                       </label>
                       <label>Призначення файлу
-                        <input value={card.purpose || ""} onChange={e => setCardField("purpose", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        <input value={card.purpose || ""} onChange={e => setCardField("purpose", e.target.value)} />
                       </label>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <label style={{ flex: 1 }}>Дата документа від
-                          <input type="date" value={card.doc_date_from || ""} onChange={e => setCardField("doc_date_from", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                      <div className="datarow">
+                        <label>Дата створення від
+                          <input type="date" value={card.doc_date_from || ""} onChange={e => setCardField("doc_date_from", e.target.value)} />
                         </label>
-                        <label style={{ flex: 1 }}>до
-                          <input type="date" value={card.doc_date_to || ""} onChange={e => setCardField("doc_date_to", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        <label>до
+                          <input type="date" value={card.doc_date_to || ""} onChange={e => setCardField("doc_date_to", e.target.value)} />
                         </label>
                       </div>
                       <label>Первинне розташування на носії
-                        <input value={card.source_location || ""} onChange={e => setCardField("source_location", e.target.value)} placeholder="Disc_7/Scan_2005/" style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        <input value={card.source_location || ""} onChange={e => setCardField("source_location", e.target.value)} placeholder="Disc_7/Scan_2005/" />
                       </label>
-                      <button onClick={handleSaveCard} style={{ padding: "5px 12px", background: "#198754", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", width: "fit-content" }}>
-                        💾 Зберегти картку
-                      </button>
+                      <button className="btn primary" onClick={handleSaveCard}>💾 Зберегти картку</button>
                     </div>
                   )}
 
-                  {/* ДОВІЛЬНИЙ ОПИС */}
-                  <h4 style={{ marginTop: "1rem" }}>Довільний опис документа</h4>
-                  <textarea 
+                  <h4>Опис документа</h4>
+                  <textarea
                     rows={3}
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)} 
-                    placeholder="Введіть довільний опис документа..."
-                    style={{ width: "100%", padding: "6px", borderRadius: "4px", border: "1px solid #ccc", marginBottom: "5px", fontSize: "0.9rem" }}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Введіть опис документа..."
                   />
-                  <button onClick={handleSaveDescription} style={{ padding: "4px 10px", background: "#007bff", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem" }}>
-                    Зберегти опис
-                  </button>
+                  <div className="actions">
+                    <button className="btn" onClick={handleSaveDescription}>Зберегти опис</button>
+                  </div>
 
-                  <hr style={{ margin: "0.5rem 0 1rem 0", borderColor: "#ccc" }} />
+                  <hr />
 
                   <h4>Теги</h4>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.5rem" }}>
-                    {tags.map((t, i) => <span key={i} style={{ background: "#e0e0e0", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem" }}>#{t}</span>)}
+                  <div className="chipwrap">
+                    {tags.map((t, i) => <span key={i} className="chip">#{t}</span>)}
                   </div>
-                  <form onSubmit={handleAddTag} style={{ display: "flex", gap: "5px", marginBottom: "1rem" }}>
-                    <input type="text" placeholder="Додати тег..." value={newTag} onChange={(e) => setNewTag(e.target.value)} style={{ padding: "4px", flex: 1 }} />
-                    <button type="submit" style={{ padding: "4px 8px" }}>+</button>
+                  <form onSubmit={handleAddTag} className="addform">
+                    <input type="text" placeholder="Додати тег..." value={newTag} onChange={(e) => setNewTag(e.target.value)} />
+                    <button type="submit" className="btn">+</button>
                   </form>
 
-                  <h4>Персоналії</h4>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.5rem" }}>
-                    {persons.map((p, i) => <span key={i} style={{ background: "#d1e7dd", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem" }}>👤 {p}</span>)}
+                  <h4>Люди</h4>
+                  <div className="chipwrap">
+                    {persons.map((p, i) => <span key={i} className="chip person">👤 {p}</span>)}
                   </div>
-                  <form onSubmit={handleAddPerson} style={{ display: "flex", gap: "5px", marginBottom: "1rem" }}>
-                    <input type="text" placeholder="Додати особу..." value={newPerson} onChange={(e) => setNewPerson(e.target.value)} style={{ padding: "4px", flex: 1 }} />
-                    <button type="submit" style={{ padding: "4px 8px" }}>+</button>
+                  <form onSubmit={handleAddPerson} className="addform">
+                    <input type="text" placeholder="Додати людину..." value={newPerson} onChange={(e) => setNewPerson(e.target.value)} />
+                    <button type="submit" className="btn">+</button>
                   </form>
 
-                  <h4>Локації</h4>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.5rem" }}>
-                    {locations.map((l, i) => <span key={i} style={{ background: "#cfe2ff", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem" }}>📍 {l}</span>)}
+                  <h4>Місця</h4>
+                  <div className="chipwrap">
+                    {locations.map((l, i) => <span key={i} className="chip location">📍 {l}</span>)}
                   </div>
-                  <form onSubmit={handleAddLocation} style={{ display: "flex", gap: "5px" }}>
-                    <input type="text" placeholder="Додати локацію..." value={newLocation} onChange={(e) => setNewLocation(e.target.value)} style={{ padding: "4px", flex: 1 }} />
-                    <button type="submit" style={{ padding: "4px 8px" }}>+</button>
+                  <form onSubmit={handleAddLocation} className="addform">
+                    <input type="text" placeholder="Додати місце..." value={newLocation} onChange={(e) => setNewLocation(e.target.value)} />
+                    <button type="submit" className="btn">+</button>
                   </form>
                 </div>
-              ) : <p style={{ color: "#777" }}>Оберіть документ у списку.</p>}
+              ) : <p className="empty">Оберіть документ у списку.</p>}
             </div>
           </div>
         </>
