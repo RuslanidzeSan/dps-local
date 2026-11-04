@@ -236,3 +236,38 @@ input[type="checkbox"] { accent-color: var(--accent); }
   color: var(--ink);
   box-shadow: 0 1px 3px rgba(29, 53, 87, 0.15);
 }
+
+/* ---------- D2.2: панель дій і фільтри ---------- */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.filterbar .search { flex: 1 1 220px; min-width: 200px; }
+
+.flabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.btn.fixity { background: var(--fixity); border-color: transparent; color: #fff; }
+.btn.fixity:hover { background: var(--fixity); filter: brightness(1.1); }
