@@ -603,7 +603,6 @@ export default function App() {
               <button className="btn" onClick={() => setFixityReport(null)}>Закрити звіт</button>
             </div>
           )}
-          )}
 
           {/* ПАНЕЛЬ РОЗШИРЕНОГО ПОШУКУ ТА ФІЛЬТРАЦІЇ */}
           <div className="filterbar">
