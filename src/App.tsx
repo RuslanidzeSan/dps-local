@@ -536,64 +536,38 @@ export default function App() {
       {activeTab === "archive" && (
         <>
           {/* ПАНЕЛЬ ДІЙ НАД АРХІВОМ */}
-          <div style={{ marginBottom: "1rem", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-              <button
-                onClick={() => setIngestMode("managed")}
-                style={{ padding: "0.5rem 0.8rem", background: ingestMode === "managed" ? "#28a745" : "#e9ecef", color: ingestMode === "managed" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer" }}
-              >Режим: копія в архів</button>
-              <button
-                onClick={() => setIngestMode("reference")}
-                style={{ padding: "0.5rem 0.8rem", background: ingestMode === "reference" ? "#fd7e14" : "#e9ecef", color: ingestMode === "reference" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer" }}
-              >Режим: лише посилання</button>
+          <div className="actions">
+            <div className="seg">
+              <button onClick={() => setIngestMode("managed")} className={ingestMode === "managed" ? "on" : ""}>Копіювати файл</button>
+              <button onClick={() => setIngestMode("reference")} className={ingestMode === "reference" ? "on" : ""}>Індексувати файл</button>
             </div>
-            <button onClick={handleSelectAndIngest} disabled={loading} style={{ padding: "0.6rem 1.2rem", fontSize: "1rem", cursor: "pointer", background: ingestMode === "reference" ? "#fd7e14" : "#28a745", color: "#fff", border: "none", borderRadius: "4px" }}>
-              {loading ? "Збереження..." : (ingestMode === "reference" ? "🔗 Проіндексувати посиланням" : "📥 Завантажити файл в архів")}
+            <button className="btn primary" onClick={handleSelectAndIngest} disabled={loading}>
+              {loading ? "Збереження..." : (ingestMode === "reference" ? "🔗 Індексувати файл" : "📥 Архівувати файл")}
             </button>
-            <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.9rem", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={recursiveIngest}
-                onChange={(e) => setRecursiveIngest(e.target.checked)}
-              />
+            <label className="flabel">
+              <input type="checkbox" checked={recursiveIngest} onChange={(e) => setRecursiveIngest(e.target.checked)} />
               Включно з підпапками
             </label>
-            <button onClick={handleSelectDirectory} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#6f42c1", color: "#fff", border: "none", borderRadius: "4px" }}>
-              📁 Імпортувати каталог
-            </button>
-            <button onClick={handleReconcile} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px" }}>
-              🔎 Перевірити посилання
-            </button>
-            <button onClick={handleFullFixity} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#e83e8c", color: "#fff", border: "none", borderRadius: "4px" }}>
-              🩺 Перевірити весь архів
-            </button>
-            <button onClick={async () => {
+            <button className="btn" onClick={handleSelectDirectory} disabled={loading}>📁 Архівувати папку</button>
+            <button className="btn" onClick={handleReconcile} disabled={loading}>🔎 Перевірити індексацію</button>
+            <button className="btn fixity" onClick={handleFullFixity} disabled={loading}>🩺 Перевірити весь архів</button>
+            <button className="btn" onClick={async () => {
               try {
                 setLoading(true);
                 setStatus("🧹 Генерування мініатюр для зображень...");
                 const n = await invoke<number>("generate_thumbnails_command");
                 setThumbs({});
                 setStatus(`✅ Створено мініатюр: ${n}.`);
-                                if (viewMode === "gallery") fetchThumbnails(objects, true);
+                if (viewMode === "gallery") fetchThumbnails(objects, true);
               } catch (err: any) {
                 setStatus(`Помилка генерації мініатюр: ${String(err)}`);
               } finally { setLoading(false); }
-            }} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#fd7e14", color: "#fff", border: "none", borderRadius: "4px" }}>
-              🖼️ Оновити мініатюри
-            </button>
-            <button onClick={handleExportCsv} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#20c997", color: "#fff", border: "none", borderRadius: "4px" }}>
-              📊 Експорт CSV
-            </button>
-            <button onClick={handleExportJson} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#6610f2", color: "#fff", border: "none", borderRadius: "4px" }}>
-              📋 Експорт JSON
-            </button>
-            <button onClick={handleCreateBackup} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#0d6efd", color: "#fff", border: "none", borderRadius: "4px" }}>
-              💾 Резервна копія
-            </button>
-            <button onClick={handleRestoreBackup} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#dc3545", color: "#fff", border: "none", borderRadius: "4px" }}>
-              ♻️ Відновити з копії
-            </button>
-            {status && <span style={{ color: "#555" }}>{status}</span>}
+            }} disabled={loading}>🖼 Оновити прев'ю</button>
+            <button className="btn" onClick={handleExportCsv} disabled={loading}>📊 Експорт CSV</button>
+            <button className="btn" onClick={handleExportJson} disabled={loading}>📋 Експорт JSON</button>
+            <button className="btn" onClick={handleCreateBackup} disabled={loading}>💾 Резервна копія</button>
+            <button className="btn danger" onClick={handleRestoreBackup} disabled={loading}>♻️ Відновити з копії</button>
+            {status && <span className="statusline">{status}</span>}
           </div>
 
           {/* ЗВІТ FIXITY-ПЕРЕВІРКИ ВСЬОГО АРХІВУ */}
@@ -633,25 +607,24 @@ export default function App() {
           )}
 
           {/* ПАНЕЛЬ РОЗШИРЕНОГО ПОШУКУ ТА ФІЛЬТРАЦІЇ */}
-          <div style={{ background: "#eef2f5", padding: "12px", borderRadius: "8px", marginBottom: "1.5rem", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                        <strong>🔍 Фільтри реєстру:</strong>
+          <div className="filterbar">
             <input
+              className="search"
               type="text"
               placeholder="Пошук за назвою..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ padding: "6px", width: "220px", borderRadius: "4px", border: "1px solid #ccc" }}
             />
-            <select value={filterTagId} onChange={e => setFilterTagId(e.target.value)} style={{ padding: "6px", borderRadius: "4px" }}>
+            <select value={filterTagId} onChange={e => setFilterTagId(e.target.value)}>
               <option value="">Всі теги</option>
               {allTags.map(t => <option key={t.id} value={t.id}>#{t.tag_name}</option>)}
             </select>
-            <select value={filterPersonId} onChange={e => setFilterPersonId(e.target.value)} style={{ padding: "6px", borderRadius: "4px" }}>
-              <option value="">Всі особи</option>
+            <select value={filterPersonId} onChange={e => setFilterPersonId(e.target.value)}>
+              <option value="">Всі люди</option>
               {allPersons.map(p => <option key={p.id} value={p.id}>👤 {p.person_name}</option>)}
             </select>
-            <select value={filterLocationId} onChange={e => setFilterLocationId(e.target.value)} style={{ padding: "6px", borderRadius: "4px" }}>
-              <option value="">Всі локації</option>
+            <select value={filterLocationId} onChange={e => setFilterLocationId(e.target.value)}>
+              <option value="">Всі місця</option>
               {allLocations.map(l => <option key={l.id} value={l.id}>📍 {l.location_name}</option>)}
             </select>
             <input
@@ -659,30 +632,35 @@ export default function App() {
               placeholder="Формат (pdf, jpg...)"
               value={filterExt}
               onChange={e => setFilterExt(e.target.value)}
-              style={{ padding: "6px", width: "140px", borderRadius: "4px", border: "1px solid #ccc" }}
             />
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              від <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label className="flabel">
+              Дата файла від
+              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
             </label>
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              до <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label className="flabel">
+              до
+              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
             </label>
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              розмір від <input type="number" min="0" placeholder="КБ" value={filterMinKb} onChange={e => setFilterMinKb(e.target.value)} style={{ padding: "5px", width: "80px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label className="flabel">
+              Розмір від (КБ)
+              <input type="number" min="0" placeholder="КБ" value={filterMinKb} onChange={e => setFilterMinKb(e.target.value)} />
             </label>
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              до <input type="number" min="0" placeholder="КБ" value={filterMaxKb} onChange={e => setFilterMaxKb(e.target.value)} style={{ padding: "5px", width: "80px", borderRadius: "4px", border: "1px solid #ccc" }} />
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              док. дата від <input type="date" value={filterDocDateFrom} onChange={e => setFilterDocDateFrom(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label className="flabel">
+              до
+              <input type="number" min="0" placeholder="КБ" value={filterMaxKb} onChange={e => setFilterMaxKb(e.target.value)} />
             </label>
-            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
-              до <input type="date" value={filterDocDateTo} onChange={e => setFilterDocDateTo(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label className="flabel">
+              Дата створення від
+              <input type="date" value={filterDocDateFrom} onChange={e => setFilterDocDateFrom(e.target.value)} />
             </label>
+            <label className="flabel">
+              до
+              <input type="date" value={filterDocDateTo} onChange={e => setFilterDocDateTo(e.target.value)} />
             </label>
-            {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb) && (
+            {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb || filterDocDateFrom || filterDocDateTo) && (
               <button
+                className="btn ghost"
                 onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); setFilterDocDateFrom(""); setFilterDocDateTo(""); }}
-                style={{ padding: "6px 10px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
               >
                 Скинути фільтри
               </button>
