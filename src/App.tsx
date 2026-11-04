@@ -986,24 +986,24 @@ export default function App() {
       {activeTab === "exports" && (
         <div className="panel">
           <h2>Експорти</h2>
-          <p style={{ color: "#666", fontSize: "0.9rem" }}>
+          <p className="hint">
             Усі CSV/JSON-таблиці зберігаються у теці програми: ~/.dps-local/exports/
           </p>
           {exportFiles.length === 0 ? (
-            <p style={{ color: "#777" }}>Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Реєстр архіву».</p>
+            <p className="empty">Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Архівовані файли».</p>
           ) : (
             <table className="objtable">
               <thead>
                 <tr>
                   <th>Назва</th>
-                  <th style={{ padding: "10px" }}>Дата створення</th>
-                  <th style={{ padding: "10px" }}>Розмір</th>
+                  <th>Дата створення</th>
+                  <th>Розмір</th>
                   <th style={{ textAlign: "right" }}>Дії</th>
                 </tr>
               </thead>
               <tbody>
                 {exportFiles.map(f => (
-                  <tr key={f.path} style={{ borderBottom: "1px solid #eee" }}>
+                  <tr key={f.path}>
                     <td>
                       {renamingExport === f.path ? (
                         <input
@@ -1024,9 +1024,9 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <button onClick={() => { setRenamingExport(f.path); setRenameValue(f.name); }} style={{ marginRight: "5px", background: "#ffc107", border: "none", padding: "4px 8px", cursor: "pointer" }}>✏️ Перейменувати</button>
-                          <button onClick={() => handleRevealExport(f.path)} style={{ marginRight: "5px", background: "#17a2b8", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>📂 Показати теку</button>
-                          <button onClick={() => handleOpenExport(f.path)} style={{ background: "#20c997", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Відкрити</button>
+                          <button onClick={() => { setRenamingExport(f.path); setRenameValue(f.name); }} className="btn" style={{ marginRight: "5px" }}>✏️ Перейменувати</button>
+                          <button onClick={() => handleRevealExport(f.path)} className="btn" style={{ marginRight: "5px" }}>📂 Показати теку</button>
+                          <button onClick={() => handleOpenExport(f.path)} className="btn">Відкрити</button>
                         </>
                       )}
                     </td>
@@ -1042,30 +1042,30 @@ export default function App() {
       {activeTab === "audit" && (
         <div className="panel">
           <h2>Журнал дій</h2>
-          <p style={{ color: "#666", fontSize: "0.9rem" }}>Незмінний лог операцій для відстеження подій у системі.</p>
+          <p className="hint">Незмінний журнал операцій для відстеження подій у системі.</p>
           <table className="objtable">
             <thead>
               <tr>
-                <th style={{ padding: "10px" }}>Тип дії (Action)</th>
-                <th style={{ padding: "10px" }}>Цільовий ID / Деталі</th>
-                <th style={{ padding: "10px" }}>Час (UTC)</th>
+                <th>Тип дії</th>
+                <th>ID / Деталі</th>
+                <th>Час (UTC)</th>
               </tr>
             </thead>
             <tbody>
               {auditLogs.length === 0 ? (
-                <tr><td colSpan={3} style={{ padding: "15px", textAlign: "center", color: "#777" }}>Записи в аудиті відсутні.</td></tr>
+                <tr><td colSpan={3} className="emptycell">Записів ще немає.</td></tr>
               ) : (
                 auditLogs.map(log => (
-                  <tr key={log.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <tr key={log.id}>
                     <td>
-                      <span style={{ background: "#e2e3e5", padding: "3px 6px", borderRadius: "4px", fontWeight: "bold", fontSize: "0.85rem" }}>
+                      <span className="pill mono">
                         {log.action_type}
                       </span>
                     </td>
                     <td style={{ fontSize: "0.85rem" }}>
                       {log.details || log.target_record_id || "—"}
                     </td>
-                    <td style={{ padding: "10px", color: "#555", fontSize: "0.85rem" }}>
+                    <td className="mono" style={{ color: "var(--ink-soft)", fontSize: "0.85rem" }}>
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                   </tr>
