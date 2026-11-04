@@ -669,65 +669,68 @@ export default function App() {
 
           <div style={{ display: "flex", gap: "2rem" }}>
             <div style={{ flex: 1.5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <h2>Список документів ({totalObjects})</h2>
-                <button onClick={() => setViewMode("table")} style={{ padding: "4px 10px", background: viewMode === "table" ? "#007bff" : "#f1f1f1", color: viewMode === "table" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer", fontSize: "0.85rem" }}>☰ Таблиця</button>
-                <button onClick={() => setViewMode("gallery")} style={{ padding: "4px 10px", background: viewMode === "gallery" ? "#007bff" : "#f1f1f1", color: viewMode === "gallery" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer", fontSize: "0.85rem" }}>🖼️ Галерея</button>
+              <h2>Архівовані файли ({totalObjects})</h2>
+
+              <div className="resultsbar">
+                <div className="seg">
+                  <button onClick={() => setViewMode("table")} className={viewMode === "table" ? "on" : ""}>☰ Таблиця</button>
+                  <button onClick={() => setViewMode("gallery")} className={viewMode === "gallery" ? "on" : ""}>🖼 Галерея</button>
+                </div>
               </div>
-              {objects.length === 0 ? <p style={{ color: "#777" }}>Нічого не знайдено за заданими критеріями.</p> : viewMode === "table" ? (
-                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem", textAlign: "left", background: "#fff" }}>
+
+              {objects.length === 0 ? (
+                <p className="empty">Нічого не знайдено за заданими критеріями.</p>
+              ) : viewMode === "table" ? (
+                <table className="objtable">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #ccc", background: "#f9f9f9" }}>
-                      <th style={{ padding: "8px" }}>Назва</th>
-                      <th style={{ padding: "8px" }}>Статус</th>
-                      <th style={{ padding: "8px" }}>Дата</th>
+                    <tr>
+                      <th>Назва</th>
+                      <th>Стан</th>
+                      <th>Дата архівування</th>
                     </tr>
                   </thead>
                   <tbody>
                     {objects.map((obj) => (
-                      <tr key={obj.id} onClick={() => handleRowClick(obj)} style={{ borderBottom: "1px solid #eee", cursor: "pointer", background: selectedObject?.id === obj.id ? "#e6f2ff" : "transparent" }}>
-                        <td style={{ padding: "8px" }}>{obj.display_name}</td>
-                        <td style={{ padding: "8px" }}>{obj.status}</td>
-                        <td style={{ padding: "8px" }}>{new Date(obj.created_at).toLocaleDateString()}</td>
+                      <tr key={obj.id} onClick={() => handleRowClick(obj)} className={selectedObject?.id === obj.id ? "sel" : ""}>
+                        <td>{obj.display_name}</td>
+                        <td>
+                          {obj.status === "Active" ? (
+                            <span className="pill ok">Архівовано</span>
+                          ) : obj.status === "Pending_Deletion" ? (
+                            <span className="pill warn">Очікує перегляду</span>
+                          ) : obj.status === "Checksum_Error" ? (
+                            <span className="pill bad">Пошкоджено</span>
+                          ) : (
+                            <span className="pill">{obj.status}</span>
+                          )}
+                        </td>
+                        <td className="mono">{new Date(obj.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px", marginTop: "1rem" }}>
+                <div className="gallery">
                   {objects.map((obj) => (
-                    <div key={obj.id} onClick={() => handleRowClick(obj)} style={{ background: "#fff", border: "1px solid #ddd", borderRadius: "8px", padding: "8px", cursor: "pointer", boxShadow: selectedObject?.id === obj.id ? "0 0 0 2px #007bff" : "none" }}>
-                      <div style={{ width: "100%", height: "120px", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f3f5", borderRadius: "6px", overflow: "hidden", marginBottom: "6px" }}>
+                    <div key={obj.id} onClick={() => handleRowClick(obj)} className={"gcard" + (selectedObject?.id === obj.id ? " sel" : "")}>
+                      <div className="gthumb">
                         {thumbs[obj.id] ? (
-                          <img src={thumbs[obj.id]!} alt={obj.display_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={thumbs[obj.id]!} alt={obj.display_name} />
                         ) : (
-                                                    <span style={{ fontSize: "2rem" }} title={obj.file_path}>{fileIcon(obj.file_path)}</span>
+                          <span title={obj.file_path}>{fileIcon(obj.file_path)}</span>
                         )}
                       </div>
-                      <div style={{ fontWeight: "bold", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={obj.display_name}>{obj.display_name}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#777" }}>{new Date(obj.created_at).toLocaleDateString()}</div>
+                      <div className="gname" title={obj.display_name}>{obj.display_name}</div>
+                      <div className="gmeta">{new Date(obj.created_at).toLocaleDateString()}</div>
                     </div>
                   ))}
                 </div>
               )}
-              <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
-                <button
-                  onClick={() => setPage(p => p - 1)}
-                  disabled={page === 0}
-                  style={{ padding: "6px 14px", background: page === 0 ? "#ccc" : "#007bff", color: "#fff", border: "none", borderRadius: "4px", cursor: page === 0 ? "default" : "pointer" }}
-                >
-                  ‹ Назад
-                </button>
-                <span style={{ fontSize: "0.9rem", color: "#555" }}>
-                  Сторінка {page + 1} з {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page + 1 >= totalPages}
-                  style={{ padding: "6px 14px", background: page + 1 >= totalPages ? "#ccc" : "#007bff", color: "#fff", border: "none", borderRadius: "4px", cursor: page + 1 >= totalPages ? "default" : "pointer" }}
-                >
-                  Вперед ›
-                </button>
+
+              <div className="pager">
+                <button onClick={() => setPage(p => p - 1)} disabled={page === 0} className="btn">‹ Назад</button>
+                <span>Сторінка {page + 1} з {totalPages}</span>
+                <button onClick={() => setPage(p => p + 1)} disabled={page + 1 >= totalPages} className="btn">Вперед ›</button>
               </div>
             </div>
             <div style={{ flex: 1.2, background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
