@@ -581,7 +581,7 @@ export default function App() {
               {fixityReport.problems.length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "8px", background: "#fff" }}>
                   <thead>
-                    <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+                    <tr>
                       <th style={{ padding: "6px" }}>Документ</th>
                       <th style={{ padding: "6px" }}>Проблема</th>
                       <th style={{ padding: "6px" }}>Шлях</th>
@@ -850,10 +850,10 @@ export default function App() {
 
       {/* ВКЛАДКА: ТЕГИ */}
       {activeTab === "tags" && (
-        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <h2>Довідник тегів (`ref_tags`)</h2>
-          <div style={{ background: "#eef2f5", padding: "10px", borderRadius: "6px", margin: "1rem 0", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <strong>Злиття тегів:</strong>
+        <div className="panel">
+          <h2>Теги</h2>
+          <div className="mergepanel">
+            <strong>Об'єднання тегів:</strong>
             <select value={mergeSourceId} onChange={e => setMergeSourceId(e.target.value)} style={{ padding: "5px" }}>
               <option value="">-- Джерело --</option>
               {allTags.map(t => <option key={t.id} value={t.id}>#{t.tag_name}</option>)}
@@ -863,26 +863,26 @@ export default function App() {
               <option value="">-- Ціль --</option>
               {allTags.map(t => <option key={t.id} value={t.id}>#{t.tag_name}</option>)}
             </select>
-            <button onClick={handleMergeTags} style={{ background: "#6f42c1", color: "#fff", border: "none", padding: "6px 12px", cursor: "pointer", borderRadius: "4px" }}>Злити</button>
+            <button onClick={handleMergeTags} className="btn">Об'єднати</button>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
-            <thead><tr style={{ background: "#f1f1f1", textAlign: "left" }}><th style={{ padding: "10px" }}>Назва</th><th style={{ padding: "10px" }}>Usage Count</th><th style={{ padding: "10px" }}>Дата</th><th style={{ padding: "10px", textAlign: "right" }}>Дії</th></tr></thead>
+          <table className="objtable">
+            <thead><tr><th>Назва</th><th>Файлів</th><th>Дата</th><th style={{ textAlign: "right" }}>Дії</th></tr></thead>
             <tbody>
               {allTags.map(t => (
-                <tr key={t.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "10px" }}>{editingTagId === t.id ? <input value={editingTagName} onChange={e => setEditingTagName(e.target.value)} /> : <strong>#{t.tag_name}</strong>}</td>
-                  <td style={{ padding: "10px" }}>{t.usage_count} док.</td>
-                  <td style={{ padding: "10px", fontSize: "0.85rem" }}>{new Date(t.created_at).toLocaleString()}</td>
-                  <td style={{ padding: "10px", textAlign: "right" }}>
+                <tr key={t.id}>
+                  <td>{editingTagId === t.id ? <input value={editingTagName} onChange={e => setEditingTagName(e.target.value)} /> : <strong>#{t.tag_name}</strong>}</td>
+                  <td>{t.usage_count}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{new Date(t.created_at).toLocaleString()}</td>
+                  <td style={{ textAlign: "right" }}>
                     {editingTagId === t.id ? (
                       <>
-                        <button onClick={async () => { await invoke("update_tag_name", { tagId: t.id, newName: editingTagName }); setEditingTagId(null); fetchAllData(); fetchFilteredObjects(); }} style={{ marginRight: "5px", background: "#28a745", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Зберегти</button>
-                        <button onClick={() => setEditingTagId(null)} style={{ background: "#6c757d", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Скасувати</button>
+                        <button onClick={async () => { await invoke("update_tag_name", { tagId: t.id, newName: editingTagName }); setEditingTagId(null); fetchAllData(); fetchFilteredObjects(); }} className="btn primary" style={{ marginRight: "5px" }}>Зберегти</button>
+                        <button onClick={() => setEditingTagId(null)} className="btn">Скасувати</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditingTagId(t.id); setEditingTagName(t.tag_name); }} style={{ marginRight: "5px", background: "#ffc107", border: "none", padding: "4px 8px", cursor: "pointer" }}>Редагувати</button>
-                        <button onClick={async () => { if (confirm("Видалити тег?")) { await invoke("delete_tag_record", { tagId: t.id }); fetchAllData(); fetchFilteredObjects(); } }} style={{ background: "#dc3545", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Видалити</button>
+                        <button onClick={() => { setEditingTagId(t.id); setEditingTagName(t.tag_name); }} className="btn" style={{ marginRight: "5px" }}>Редагувати</button>
+                        <button onClick={async () => { if (confirm("Видалити тег?")) { await invoke("delete_tag_record", { tagId: t.id }); fetchAllData(); fetchFilteredObjects(); } }} className="btn danger">Видалити</button>
                       </>
                     )}
                   </td>
@@ -895,10 +895,10 @@ export default function App() {
 
       {/* ВКЛАДКА: ПЕРСОНАЛІЇ */}
       {activeTab === "persons" && (
-        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <h2>Довідник персоналій (`ref_persons`)</h2>
-          <div style={{ background: "#eef2f5", padding: "10px", borderRadius: "6px", margin: "1rem 0", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <strong>Злиття осіб:</strong>
+        <div className="panel">
+          <h2>Люди</h2>
+          <div className="mergepanel">
+            <strong>Об'єднання людей:</strong>
             <select value={mergePersonSource} onChange={e => setMergePersonSource(e.target.value)} style={{ padding: "5px" }}>
               <option value="">-- Джерело --</option>
               {allPersons.map(p => <option key={p.id} value={p.id}>👤 {p.person_name}</option>)}
@@ -908,26 +908,26 @@ export default function App() {
               <option value="">-- Ціль --</option>
               {allPersons.map(p => <option key={p.id} value={p.id}>👤 {p.person_name}</option>)}
             </select>
-            <button onClick={handleMergePersons} style={{ background: "#6f42c1", color: "#fff", border: "none", padding: "6px 12px", cursor: "pointer", borderRadius: "4px" }}>Злити</button>
+            <button onClick={handleMergePersons} className="btn">Об'єднати</button>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
-            <thead><tr style={{ background: "#f1f1f1", textAlign: "left" }}><th style={{ padding: "10px" }}>Ім'я</th><th style={{ padding: "10px" }}>Usage Count</th><th style={{ padding: "10px" }}>Дата</th><th style={{ padding: "10px", textAlign: "right" }}>Дії</th></tr></thead>
+          <table className="objtable">
+            <thead><tr><th>Ім'я</th><th>Файлів</th><th>Дата</th><th style={{ textAlign: "right" }}>Дії</th></tr></thead>
             <tbody>
               {allPersons.map(p => (
-                <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "10px" }}>{editingPersonId === p.id ? <input value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} /> : <strong>👤 {p.person_name}</strong>}</td>
-                  <td style={{ padding: "10px" }}>{p.usage_count} док.</td>
-                  <td style={{ padding: "10px", fontSize: "0.85rem" }}>{new Date(p.created_at).toLocaleString()}</td>
-                  <td style={{ padding: "10px", textAlign: "right" }}>
+                <tr key={p.id}>
+                  <td>{editingPersonId === p.id ? <input value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} /> : <strong>👤 {p.person_name}</strong>}</td>
+                  <td>{p.usage_count}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{new Date(p.created_at).toLocaleString()}</td>
+                  <td style={{ textAlign: "right" }}>
                     {editingPersonId === p.id ? (
                       <>
-                        <button onClick={async () => { await invoke("update_person_name", { personId: p.id, newName: editingPersonName }); setEditingPersonId(null); fetchAllData(); fetchFilteredObjects(); }} style={{ marginRight: "5px", background: "#28a745", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Зберегти</button>
-                        <button onClick={() => setEditingPersonId(null)} style={{ background: "#6c757d", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Скасувати</button>
+                        <button onClick={async () => { await invoke("update_person_name", { personId: p.id, newName: editingPersonName }); setEditingPersonId(null); fetchAllData(); fetchFilteredObjects(); }} className="btn primary" style={{ marginRight: "5px" }}>Зберегти</button>
+                        <button onClick={() => setEditingPersonId(null)} className="btn">Скасувати</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditingPersonId(p.id); setEditingPersonName(p.person_name); }} style={{ marginRight: "5px", background: "#ffc107", border: "none", padding: "4px 8px", cursor: "pointer" }}>Редагувати</button>
-                        <button onClick={async () => { if (confirm("Видалити особу?")) { await invoke("delete_person_record", { personId: p.id }); fetchAllData(); fetchFilteredObjects(); } }} style={{ background: "#dc3545", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Видалити</button>
+                        <button onClick={() => { setEditingPersonId(p.id); setEditingPersonName(p.person_name); }} className="btn" style={{ marginRight: "5px" }}>Редагувати</button>
+                        <button onClick={async () => { if (confirm("Видалити людину?")) { await invoke("delete_person_record", { personId: p.id }); fetchAllData(); fetchFilteredObjects(); } }} className="btn danger">Видалити</button>
                       </>
                     )}
                   </td>
@@ -940,10 +940,10 @@ export default function App() {
 
       {/* ВКЛАДКА: ЛОКАЦІЇ */}
       {activeTab === "locations" && (
-        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <h2>Довідник локацій (`ref_locations`)</h2>
-          <div style={{ background: "#eef2f5", padding: "10px", borderRadius: "6px", margin: "1rem 0", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <strong>Злиття локацій:</strong>
+        <div className="panel">
+          <h2>Місця</h2>
+          <div className="mergepanel">
+            <strong>Об'єднання місць:</strong>
             <select value={mergeLocationSource} onChange={e => setMergeLocationSource(e.target.value)} style={{ padding: "5px" }}>
               <option value="">-- Джерело --</option>
               {allLocations.map(l => <option key={l.id} value={l.id}>📍 {l.location_name}</option>)}
@@ -953,26 +953,26 @@ export default function App() {
               <option value="">-- Ціль --</option>
               {allLocations.map(l => <option key={l.id} value={l.id}>📍 {l.location_name}</option>)}
             </select>
-            <button onClick={handleMergeLocations} style={{ background: "#6f42c1", color: "#fff", border: "none", padding: "6px 12px", cursor: "pointer", borderRadius: "4px" }}>Злити</button>
+            <button onClick={handleMergeLocations} className="btn">Об'єднати</button>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
-            <thead><tr style={{ background: "#f1f1f1", textAlign: "left" }}><th style={{ padding: "10px" }}>Локація</th><th style={{ padding: "10px" }}>Usage Count</th><th style={{ padding: "10px" }}>Дата</th><th style={{ padding: "10px", textAlign: "right" }}>Дії</th></tr></thead>
+          <table className="objtable">
+            <thead><tr><th style={{ padding: "10px" }}>Локація</th><th>Файлів</th><th>Дата</th><th style={{ textAlign: "right" }}>Дії</th></tr></thead>
             <tbody>
               {allLocations.map(l => (
-                <tr key={l.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "10px" }}>{editingLocationId === l.id ? <input value={editingLocationName} onChange={e => setEditingLocationName(e.target.value)} /> : <strong>📍 {l.location_name}</strong>}</td>
-                  <td style={{ padding: "10px" }}>{l.usage_count} док.</td>
-                  <td style={{ padding: "10px", fontSize: "0.85rem" }}>{new Date(l.created_at).toLocaleString()}</td>
-                  <td style={{ padding: "10px", textAlign: "right" }}>
+                <tr key={l.id}>
+                  <td>{editingLocationId === l.id ? <input value={editingLocationName} onChange={e => setEditingLocationName(e.target.value)} /> : <strong>📍 {l.location_name}</strong>}</td>
+                  <td>{l.usage_count}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{new Date(l.created_at).toLocaleString()}</td>
+                  <td style={{ textAlign: "right" }}>
                     {editingLocationId === l.id ? (
                       <>
-                        <button onClick={async () => { await invoke("update_location_name", { locationId: l.id, newName: editingLocationName }); setEditingLocationId(null); fetchAllData(); fetchFilteredObjects(); }} style={{ marginRight: "5px", background: "#28a745", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Зберегти</button>
-                        <button onClick={() => setEditingLocationId(null)} style={{ background: "#6c757d", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Скасувати</button>
+                        <button onClick={async () => { await invoke("update_location_name", { locationId: l.id, newName: editingLocationName }); setEditingLocationId(null); fetchAllData(); fetchFilteredObjects(); }} className="btn primary" style={{ marginRight: "5px" }}>Зберегти</button>
+                        <button onClick={() => setEditingLocationId(null)} className="btn">Скасувати</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditingLocationId(l.id); setEditingLocationName(l.location_name); }} style={{ marginRight: "5px", background: "#ffc107", border: "none", padding: "4px 8px", cursor: "pointer" }}>Редагувати</button>
-                        <button onClick={async () => { if (confirm("Видалити локацію?")) { await invoke("delete_location_record", { locationId: l.id }); fetchAllData(); fetchFilteredObjects(); } }} style={{ background: "#dc3545", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Видалити</button>
+                        <button onClick={() => { setEditingLocationId(l.id); setEditingLocationName(l.location_name); }} className="btn" style={{ marginRight: "5px" }}>Редагувати</button>
+                        <button onClick={async () => { if (confirm("Видалити місце?")) { await invoke("delete_location_record", { locationId: l.id }); fetchAllData(); fetchFilteredObjects(); } }} className="btn danger">Видалити</button>
                       </>
                     )}
                   </td>
@@ -985,27 +985,27 @@ export default function App() {
 
       {/* ВКЛАДКА: ЕКСПОРТИ */}
       {activeTab === "exports" && (
-        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <h2>📤 Згенеровані файли експортів</h2>
+        <div className="panel">
+          <h2>Експорти</h2>
           <p style={{ color: "#666", fontSize: "0.9rem" }}>
             Усі CSV/JSON-таблиці зберігаються у теці програми: ~/.dps-local/exports/
           </p>
           {exportFiles.length === 0 ? (
             <p style={{ color: "#777" }}>Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Реєстр архіву».</p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
+            <table className="objtable">
               <thead>
-                <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
-                  <th style={{ padding: "10px" }}>Назва</th>
+                <tr>
+                  <th>Назва</th>
                   <th style={{ padding: "10px" }}>Дата створення</th>
                   <th style={{ padding: "10px" }}>Розмір</th>
-                  <th style={{ padding: "10px", textAlign: "right" }}>Дії</th>
+                  <th style={{ textAlign: "right" }}>Дії</th>
                 </tr>
               </thead>
               <tbody>
                 {exportFiles.map(f => (
                   <tr key={f.path} style={{ borderBottom: "1px solid #eee" }}>
-                    <td style={{ padding: "10px" }}>
+                    <td>
                       {renamingExport === f.path ? (
                         <input
                           value={renameValue}
@@ -1015,13 +1015,13 @@ export default function App() {
                         />
                       ) : <strong>{f.name}</strong>}
                     </td>
-                    <td style={{ padding: "10px", fontSize: "0.85rem" }}>{new Date(f.modified_at).toLocaleString()}</td>
-                    <td style={{ padding: "10px", fontSize: "0.85rem" }}>{f.size_bytes} байт</td>
-                    <td style={{ padding: "10px", textAlign: "right" }}>
+                    <td style={{ fontSize: "0.85rem" }}>{new Date(f.modified_at).toLocaleString()}</td>
+                    <td style={{ fontSize: "0.85rem" }}>{f.size_bytes} байт</td>
+                    <td style={{ textAlign: "right" }}>
                       {renamingExport === f.path ? (
                         <>
-                          <button onClick={() => handleRenameExport(f.name)} style={{ marginRight: "5px", background: "#28a745", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Зберегти</button>
-                          <button onClick={() => { setRenamingExport(null); setRenameValue(""); }} style={{ background: "#6c757d", color: "#fff", border: "none", padding: "4px 8px", cursor: "pointer" }}>Скасувати</button>
+                          <button onClick={() => handleRenameExport(f.name)} className="btn primary" style={{ marginRight: "5px" }}>Зберегти</button>
+                          <button onClick={() => { setRenamingExport(null); setRenameValue(""); }} className="btn">Скасувати</button>
                         </>
                       ) : (
                         <>
@@ -1041,12 +1041,12 @@ export default function App() {
 
       {/* ВКЛАДКА: АУДИТ */}
       {activeTab === "audit" && (
-        <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <h2>📜 Журнал аудиту системи (`audit_events`)</h2>
+        <div className="panel">
+          <h2>Журнал дій</h2>
           <p style={{ color: "#666", fontSize: "0.9rem" }}>Незмінний лог операцій для відстеження подій у системі.</p>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: "1rem" }}>
+          <table className="objtable">
             <thead>
-              <tr style={{ background: "#f1f1f1", textAlign: "left" }}>
+              <tr>
                 <th style={{ padding: "10px" }}>Тип дії (Action)</th>
                 <th style={{ padding: "10px" }}>Цільовий ID / Деталі</th>
                 <th style={{ padding: "10px" }}>Час (UTC)</th>
@@ -1058,12 +1058,12 @@ export default function App() {
               ) : (
                 auditLogs.map(log => (
                   <tr key={log.id} style={{ borderBottom: "1px solid #eee" }}>
-                    <td style={{ padding: "10px" }}>
+                    <td>
                       <span style={{ background: "#e2e3e5", padding: "3px 6px", borderRadius: "4px", fontWeight: "bold", fontSize: "0.85rem" }}>
                         {log.action_type}
                       </span>
                     </td>
-                    <td style={{ padding: "10px", fontSize: "0.85rem" }}>
+                    <td style={{ fontSize: "0.85rem" }}>
                       {log.details || log.target_record_id || "—"}
                     </td>
                     <td style={{ padding: "10px", color: "#555", fontSize: "0.85rem" }}>

@@ -379,3 +379,18 @@ input[type="checkbox"] { accent-color: var(--accent); }
 }
 .chip.person { background: rgba(46, 125, 79, 0.10); border-color: rgba(46, 125, 79, 0.25); }
 .chip.location { background: rgba(47, 111, 222, 0.10); border-color: rgba(47, 111, 222, 0.25); }
+
+/* ---------- D2.5: довідники ---------- */
+.panel { background: var(--surface); padding: 20px; box-shadow: var(--shadow); }
+.mergepanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin: 14px 0;
+}
+.objtable { margin-top: 14px; }
