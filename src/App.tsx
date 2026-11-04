@@ -515,19 +515,23 @@ export default function App() {
   };
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: "1250px", margin: "0 auto" }}>
-      <h1>dps-local: Цифровий Архів</h1>
-      <p>Локальна автономна система архівування файлів</p>
+        <main className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          Chartularius
+          <small>цифровий архів</small>
+        </div>
+      </header>
 
       {/* Верхні вкладки */}
-      <div style={{ display: "flex", gap: "0.5rem", margin: "1.5rem 0", borderBottom: "2px solid #ddd", paddingBottom: "0.5rem", flexWrap: "wrap" }}>
-        <button onClick={() => setActiveTab("archive")} style={{ padding: "0.5rem 1rem", background: activeTab === "archive" ? "#007bff" : "#f1f1f1", color: activeTab === "archive" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📂 Реєстр архіву</button>
-        <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "tags" ? "#007bff" : "#f1f1f1", color: activeTab === "tags" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>🏷️ Довідник тегів</button>
-        <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "persons" ? "#007bff" : "#f1f1f1", color: activeTab === "persons" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>👤 Довідник осіб</button>
-        <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "locations" ? "#007bff" : "#f1f1f1", color: activeTab === "locations" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📍 Довідник локацій</button>
-        <button onClick={() => { setActiveTab("exports"); fetchExports(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "exports" ? "#007bff" : "#f1f1f1", color: activeTab === "exports" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📤 Експорти</button>
-        <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} style={{ padding: "0.5rem 1rem", background: activeTab === "audit" ? "#007bff" : "#f1f1f1", color: activeTab === "audit" ? "#fff" : "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>📜 Журнал аудиту</button>
-      </div>
+      <nav className="tabs">
+        <button onClick={() => setActiveTab("archive")} className={activeTab === "archive" ? "on" : ""}>🗂 Архівовані файли</button>
+        <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} className={activeTab === "tags" ? "on" : ""}>🏷 Теги</button>
+        <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} className={activeTab === "persons" ? "on" : ""}>👤 Люди</button>
+        <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} className={activeTab === "locations" ? "on" : ""}>📍 Місця</button>
+        <button onClick={() => { setActiveTab("exports"); fetchExports(); }} className={activeTab === "exports" ? "on" : ""}>📤 Експорти</button>
+        <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} className={activeTab === "audit" ? "on" : ""}>📜 Журнал дій</button>
+      </nav>
 
       {activeTab === "archive" && (
         <>
