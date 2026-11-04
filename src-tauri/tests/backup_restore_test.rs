@@ -98,3 +98,25 @@ fn restore_rejects_folder_without_manifest() {
     let result = restore_backup_at(&fake, &db_path, &storage_dir);
     assert!(result.is_err(), "restore без manifest.json має бути відхилено");
 }
+
+#[test]
+fn backup_and_restore_include_thumbnails() {
+    let root = temp_dir("thumbs");
+    let (db_path, storage_dir) = make_live_archive(&root);
+
+    // У «живому архіві» є тека мініатюр з одним файлом
+    let thumbs_dir = root.join("thumbnails");
+    fs::create_dir_all(&thumbs_dir).unwrap();
+    fs::write(thumbs_dir.join("33333333-3333-3333-3333-333333333333.jpg"), b"fake thumbnail").unwrap();
+
+    let backup_path = create_backup_at(&db_path, &storage_dir, &root.join("backups")).unwrap();
+    assert!(backup_path.join("thumbnails/33333333-3333-3333-3333-333333333333.jpg").exists(),
+        "у копії має бути мініатюра");
+
+    // СИМУЛЯЦІЯ КРИЗИ: мініатюри знищено
+    fs::remove_dir_all(&thumbs_dir).unwrap();
+
+    restore_backup_at(&backup_path, &db_path, &storage_dir).unwrap();
+    assert!(thumbs_dir.join("33333333-3333-3333-3333-333333333333.jpg").exists(),
+        "мініатюра має повернутися після restore");
+}

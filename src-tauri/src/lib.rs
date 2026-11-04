@@ -342,6 +342,17 @@ async fn verify_archive_fixity_command(
     services::fixity::verify_archive_fixity(&conn)
 }
 
+#[tauri::command]
+async fn generate_thumbnails_command(_app: AppHandle) -> Result<usize, String> {
+    let conn = db::open_database()?;
+    services::thumbnails::generate_missing_thumbnails(&conn)
+}
+
+#[tauri::command]
+async fn get_thumbnail_command(_app: AppHandle, objectId: String) -> Result<Option<String>, String> {
+    services::thumbnails::get_thumbnail_base64(&objectId)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -387,7 +398,9 @@ pub fn run() {
             search_objects_v2,
             update_object_description_handler,
             verify_object_integrity,
-            count_objects_command
+            count_objects_command,
+            generate_thumbnails_command,
+            get_thumbnail_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

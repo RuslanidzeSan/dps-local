@@ -25,11 +25,13 @@ pub fn create_backup_at(db_path: &Path, storage_dir: &Path, backup_dir: &Path) -
     let backup_storage = backup_path.join("storage");
     copy_dir_recursive(storage_dir, &backup_storage)?;
 
-    // Експорти лежать поруч з базою — копіюємо їх також
-    // (якщо теки exports/ немає, copy_dir_recursive нічого не робить)
+    // Експорти і мініатюри лежать поруч з базою — копіюємо їх також
+    // (якщо тек немає, copy_dir_recursive нічого не робить)
     if let Some(data_dir) = db_path.parent() {
         let exports_dir = data_dir.join("exports");
         copy_dir_recursive(&exports_dir, &backup_path.join("exports"))?;
+        let thumbs_dir = data_dir.join("thumbnails");
+        copy_dir_recursive(&thumbs_dir, &backup_path.join("thumbnails"))?;
     }
 
     // 4) manifest.json — «паспорт» копії
@@ -77,6 +79,12 @@ pub fn restore_backup_at(backup_path: &Path, db_path: &Path, storage_dir: &Path)
 
     // 3) Файли сховища: додаємо/перезаписуємо, зайвих НЕ видаляємо (рішення MVP)
     copy_dir_recursive(&backup_path.join("storage"), storage_dir)?;
+
+// Мініатюри: повертаємо з копії поруч з базою
+    if let Some(data_dir) = db_path.parent() {
+        let thumbs = data_dir.join("thumbnails");
+        copy_dir_recursive(&backup_path.join("thumbnails"), &thumbs)?;
+    }
 
     Ok(())
 }

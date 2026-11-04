@@ -85,6 +85,10 @@ export default function App() {
   const [page, setPage] = useState<number>(0);
   const [totalObjects, setTotalObjects] = useState<number>(0);
   const [fixityReport, setFixityReport] = useState<FixityReport | null>(null);
+ 
+  // Режим перегляду реєстру + кеш мініатюр (object_id → data-URL або null)
+  const [viewMode, setViewMode] = useState<"table" | "gallery">("table");
+  const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
 
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -133,6 +137,7 @@ export default function App() {
       const filters = buildFilters();
       const res = await invoke<ArchiveObject[]>("search_objects_v2", { filters });
       setObjects(res);
+      if (viewMode === "gallery") fetchThumbnails(res);
       // Загальна кількість збігів (без пагінації) — щоб порахувати сторінки
       const total = await invoke<number>("count_objects_command", {
         filters: { ...filters, limit: null, offset: null },
@@ -158,6 +163,21 @@ export default function App() {
     } catch (err) { console.error(err); }
   };
 
+  // Завантажує мініатюри лише для тих документів, яких ще немає в кеші
+  const fetchThumbnails = async (objs: ArchiveObject[]) => {
+    const needed = objs.filter(o => !(o.id in thumbs));
+    if (needed.length === 0) return;
+    const results = await Promise.all(needed.map(async o => {
+      const t = await invoke<string | null>("get_thumbnail_command", { objectId: o.id }).catch(() => null);
+      return [o.id, t] as const;
+    }));
+    setThumbs(prev => {
+      const next = { ...prev };
+      for (const [id, t] of results) next[id] = t;
+      return next;
+    });
+  };
+
   const fetchAllData = async () => {
     try {
       setAllTags(await invoke<TagInfoDTO[]>("get_all_tags_modal"));
@@ -172,6 +192,12 @@ export default function App() {
     fetchAllData();
   }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
       filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, page]);
+ 
+  // При переході в галерею — підтягуємо мініатюри для поточної сторінки
+  useEffect(() => {
+    if (viewMode === "gallery") fetchThumbnails(objects);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   // Зміна будь-якого фільтра скидає реєстр на першу сторінку
   useEffect(() => {
@@ -471,6 +497,20 @@ export default function App() {
             <button onClick={handleFullFixity} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#e83e8c", color: "#fff", border: "none", borderRadius: "4px" }}>
               🩺 Перевірити весь архів
             </button>
+            <button onClick={async () => {
+              try {
+                setLoading(true);
+                setStatus("🧹 Генерування мініатюр для зображень...");
+                const n = await invoke<number>("generate_thumbnails_command");
+                setThumbs({});
+                setStatus(`✅ Створено мініатюр: ${n}.`);
+                if (viewMode === "gallery") fetchThumbnails(objects);
+              } catch (err: any) {
+                setStatus(`Помилка генерації мініатюр: ${String(err)}`);
+              } finally { setLoading(false); }
+            }} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#fd7e14", color: "#fff", border: "none", borderRadius: "4px" }}>
+              🖼️ Оновити мініатюри
+            </button>
             <button onClick={handleExportCsv} disabled={loading} style={{ padding: "0.6rem 1rem", cursor: "pointer", background: "#20c997", color: "#fff", border: "none", borderRadius: "4px" }}>
               📊 Експорт CSV
             </button>
@@ -575,8 +615,12 @@ export default function App() {
 
           <div style={{ display: "flex", gap: "2rem" }}>
             <div style={{ flex: 1.5 }}>
-              <h2>Список документів ({totalObjects})</h2>
-              {objects.length === 0 ? <p style={{ color: "#777" }}>Нічого не знайдено за заданими критеріями.</p> : (
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <h2>Список документів ({totalObjects})</h2>
+                <button onClick={() => setViewMode("table")} style={{ padding: "4px 10px", background: viewMode === "table" ? "#007bff" : "#f1f1f1", color: viewMode === "table" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer", fontSize: "0.85rem" }}>☰ Таблиця</button>
+                <button onClick={() => setViewMode("gallery")} style={{ padding: "4px 10px", background: viewMode === "gallery" ? "#007bff" : "#f1f1f1", color: viewMode === "gallery" ? "#fff" : "#333", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer", fontSize: "0.85rem" }}>🖼️ Галерея</button>
+              </div>
+              {objects.length === 0 ? <p style={{ color: "#777" }}>Нічого не знайдено за заданими критеріями.</p> : viewMode === "table" ? (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem", textAlign: "left", background: "#fff" }}>
                   <thead>
                     <tr style={{ borderBottom: "2px solid #ccc", background: "#f9f9f9" }}>
@@ -595,8 +639,24 @@ export default function App() {
                     ))}
                   </tbody>
                 </table>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px", marginTop: "1rem" }}>
+                  {objects.map((obj) => (
+                    <div key={obj.id} onClick={() => handleRowClick(obj)} style={{ background: "#fff", border: "1px solid #ddd", borderRadius: "8px", padding: "8px", cursor: "pointer", boxShadow: selectedObject?.id === obj.id ? "0 0 0 2px #007bff" : "none" }}>
+                      <div style={{ width: "100%", height: "120px", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f3f5", borderRadius: "6px", overflow: "hidden", marginBottom: "6px" }}>
+                        {thumbs[obj.id] ? (
+                          <img src={thumbs[obj.id]!} alt={obj.display_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <span style={{ fontSize: "2rem" }}>📄</span>
+                        )}
+                      </div>
+                      <div style={{ fontWeight: "bold", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={obj.display_name}>{obj.display_name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#777" }}>{new Date(obj.created_at).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
               )}
-                <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
                 <button
                   onClick={() => setPage(p => p - 1)}
                   disabled={page === 0}
@@ -614,7 +674,7 @@ export default function App() {
                 >
                   Вперед ›
                 </button>
-             </div>
+              </div>
             </div>
             <div style={{ flex: 1.2, background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", border: "1px solid #ddd" }}>
               <h2>Картка документа</h2>

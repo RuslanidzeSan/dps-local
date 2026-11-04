@@ -29,6 +29,13 @@ pub fn get_exports_dir() -> PathBuf {
     path
 }
 
+pub fn get_thumbnails_dir() -> Result<PathBuf, String> {
+    let home = dirs::home_dir().ok_or("Не вдалося визначити домашню директорію")?;
+    let dir = home.join(".dps-local").join("thumbnails");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
 pub fn open_database() -> Result<Connection, String> { open_database_at(&get_database_path()) }
 
 pub fn open_database_at(path: &Path) -> Result<Connection, String> {
