@@ -322,8 +322,9 @@ input[type="checkbox"] { accent-color: var(--accent); }
 }
 .gcard:hover { transform: translateY(-2px); }
 .gcard.sel { border: 2px solid var(--accent); padding: 7px; }
-.gimg { width: 100%; height: 110px; object-fit: cover; border-radius: var(--radius-sm); }
-.gicon { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--ink-soft); }
+.gthumb { height: 110px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 6px; }
+.gthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gthumb span { color: var(--ink-soft); font-size: 2rem; }
 .gname { font-size: 12.5px; margin-top: 6px; word-break: break-all; }
 .gmeta { font-size: 11.5px; color: var(--ink-soft); }
 
