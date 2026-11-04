@@ -353,6 +353,18 @@ async fn get_thumbnail_command(_app: AppHandle, objectId: String) -> Result<Opti
     services::thumbnails::get_thumbnail_base64(&objectId)
 }
 
+#[tauri::command]
+async fn get_document_card_command(_app: AppHandle, object_id: String) -> Result<services::card::DocumentCard, String> {
+    let conn = db::open_database()?;
+    services::card::get_document_card(&conn, &object_id)
+}
+
+#[tauri::command]
+async fn update_document_card_command(_app: AppHandle, card: services::card::CardUpdate) -> Result<(), String> {
+    let conn = db::open_database()?;
+    services::card::update_document_card(&conn, &card)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -401,6 +413,8 @@ pub fn run() {
             count_objects_command,
             generate_thumbnails_command,
             get_thumbnail_command,
+            get_document_card_command,
+            update_document_card_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

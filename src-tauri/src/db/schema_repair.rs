@@ -9,6 +9,13 @@ pub const DESIRED_COLUMNS: &[(&str, &str, &str)] = &[
     // Коли з'являться нові колонки — додавай їх нижче, наприклад:
     // ("archive_objects", "description", "TEXT"),
     // ("archive_objects", "mime_type", "TEXT"),
+        // --- archive_objects: архівна картка v2 ---
+    ("archive_objects", "file_kind", "TEXT"),
+    ("archive_objects", "author", "TEXT"),
+    ("archive_objects", "purpose", "TEXT"),
+    ("archive_objects", "doc_date_from", "TEXT"),
+    ("archive_objects", "doc_date_to", "TEXT"),
+    ("archive_objects", "source_location", "TEXT"),
 ];
 
 /// Додає відсутні колонки до існуючих таблиць. Безпечно викликати повторно.

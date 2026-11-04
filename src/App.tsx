@@ -44,6 +44,17 @@ interface FixityReport {
   ok: number;
   problems: FixityProblem[];
 }
+interface DocumentCard {
+  id: string;
+  display_name: string;
+  file_kind: string | null;
+  author: string | null;
+  purpose: string | null;
+  doc_date_from: string | null;
+  doc_date_to: string | null;
+  source_location: string | null;
+  description: string | null;
+}
 
 type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit";
 
@@ -98,6 +109,8 @@ export default function App() {
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [filterMinKb, setFilterMinKb] = useState<string>("");
   const [filterMaxKb, setFilterMaxKb] = useState<string>("");
+  const [filterDocDateFrom, setFilterDocDateFrom] = useState<string>("");
+  const [filterDocDateTo, setFilterDocDateTo] = useState<string>("");
   const [page, setPage] = useState<number>(0);
   const [totalObjects, setTotalObjects] = useState<number>(0);
   const [fixityReport, setFixityReport] = useState<FixityReport | null>(null);
@@ -105,6 +118,8 @@ export default function App() {
   // Режим перегляду реєстру + кеш мініатюр (object_id → data-URL або null)
   const [viewMode, setViewMode] = useState<"table" | "gallery">("table");
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
+  // Архівна картка документа (редагована частина)
+  const [card, setCard] = useState<DocumentCard | null>(null);
 
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -140,6 +155,8 @@ export default function App() {
     extension: filterExt.trim() || null,
     date_from: filterDateFrom || null,
     date_to: filterDateTo || null,
+    doc_date_from: filterDocDateFrom || null,
+    doc_date_to: filterDocDateTo || null,
     min_size: Number.isFinite(Number(filterMinKb)) && filterMinKb.trim() !== ""
       ? Math.round(Number(filterMinKb) * 1024) : null,
     max_size: Number.isFinite(Number(filterMaxKb)) && filterMaxKb.trim() !== ""
@@ -194,6 +211,15 @@ export default function App() {
     });
   };
 
+    const fetchCard = async (objectId: string) => {
+    try {
+      setCard(await invoke<DocumentCard>("get_document_card_command", { objectId }));
+    } catch (err) { console.error("Помилка картки:", err); }
+  };
+
+  const setCardField = (field: keyof DocumentCard, value: string) =>
+    setCard(prev => (prev ? { ...prev, [field]: value } : prev));
+
   const fetchAllData = async () => {
     try {
       setAllTags(await invoke<TagInfoDTO[]>("get_all_tags_modal"));
@@ -207,7 +233,7 @@ export default function App() {
     fetchFilteredObjects();
     fetchAllData();
   }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
-      filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, page]);
+      filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, page, filterDocDateFrom, filterDocDateTo]);
  
   // При переході в галерею — підтягуємо мініатюри для поточної сторінки
   useEffect(() => {
@@ -218,12 +244,12 @@ export default function App() {
   // Зміна будь-якого фільтра скидає реєстр на першу сторінку
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
-      filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb]);
+  }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, filterDocDateFrom, filterDocDateTo]);
 
   const handleRowClick = (obj: ArchiveObject) => {
     setSelectedObject(obj);
     setDescription(obj.description || "");
+    fetchCard(obj.id);
     fetchMetadata(obj.id);
   };
 
@@ -282,6 +308,30 @@ export default function App() {
     } catch (err) {
       console.error("Помилка збереження опису:", err);
       alert(`Помилка: ${err}`);
+    }
+  };
+
+    // Збереження архівної картки (тип, автор, призначення, дати, розташування)
+  const handleSaveCard = async () => {
+    if (!selectedObject || !card) return;
+    try {
+      await invoke("update_document_card_command", {
+        card: {
+          object_id: selectedObject.id,
+          file_kind: card.file_kind || null,
+          author: card.author || null,
+          purpose: card.purpose || null,
+          doc_date_from: card.doc_date_from || null,
+          doc_date_to: card.doc_date_to || null,
+          source_location: card.source_location || null,
+        },
+      });
+      setStatus("✅ Картку документа оновлено.");
+      fetchFilteredObjects();
+      fetchAllData();
+      fetchCard(selectedObject.id);
+    } catch (err: any) {
+      setStatus(`Помилка збереження картки: ${String(err)}`);
     }
   };
 
@@ -618,10 +668,16 @@ export default function App() {
             </label>
             <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
               до <input type="number" min="0" placeholder="КБ" value={filterMaxKb} onChange={e => setFilterMaxKb(e.target.value)} style={{ padding: "5px", width: "80px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              док. дата від <input type="date" value={filterDocDateFrom} onChange={e => setFilterDocDateFrom(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
+            <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              до <input type="date" value={filterDocDateTo} onChange={e => setFilterDocDateTo(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }} />
+            </label>
             </label>
             {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb) && (
               <button
-                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); }}
+                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); setFilterDocDateFrom(""); setFilterDocDateTo(""); }}
                 style={{ padding: "6px 10px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
               >
                 Скинути фільтри
@@ -731,6 +787,42 @@ export default function App() {
                   }} style={{ padding: "4px 10px", background: "#17a2b8", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", marginBottom: "1rem", fontSize: "0.85rem", marginLeft: "5px" }}>
                    📂 Показати у теці
                   </button>
+
+                   {/* АРХІВНА КАРТКА v2 */}
+                  <h4 style={{ marginTop: "1rem" }}>📋 Архівна картка</h4>
+                  {card && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1rem", fontSize: "0.85rem" }}>
+                      <label>Тип файлу
+                        <input list="file-kind-options" value={card.file_kind || ""} onChange={e => setCardField("file_kind", e.target.value)} placeholder="Цифрове фото, скан, документ..." style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                      </label>
+                      <datalist id="file-kind-options">
+                        <option value="Цифрове фото" />
+                        <option value="Сканований документ" />
+                        <option value="Електронний документ" />
+                        <option value="Оцифровлення" />
+                      </datalist>
+                      <label>Автор / оператор
+                        <input value={card.author || ""} onChange={e => setCardField("author", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                      </label>
+                      <label>Призначення файлу
+                        <input value={card.purpose || ""} onChange={e => setCardField("purpose", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                      </label>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <label style={{ flex: 1 }}>Дата документа від
+                          <input type="date" value={card.doc_date_from || ""} onChange={e => setCardField("doc_date_from", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        </label>
+                        <label style={{ flex: 1 }}>до
+                          <input type="date" value={card.doc_date_to || ""} onChange={e => setCardField("doc_date_to", e.target.value)} style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                        </label>
+                      </div>
+                      <label>Первинне розташування на носії
+                        <input value={card.source_location || ""} onChange={e => setCardField("source_location", e.target.value)} placeholder="Disc_7/Scan_2005/" style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }} />
+                      </label>
+                      <button onClick={handleSaveCard} style={{ padding: "5px 12px", background: "#198754", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", width: "fit-content" }}>
+                        💾 Зберегти картку
+                      </button>
+                    </div>
+                  )}
 
                   {/* ДОВІЛЬНИЙ ОПИС */}
                   <h4 style={{ marginTop: "1rem" }}>Довільний опис документа</h4>

@@ -12,6 +12,8 @@ pub struct SearchFilters {
     pub extension: Option<String>,
     pub date_from: Option<String>,
     pub date_to: Option<String>,
+    pub doc_date_from: Option<String>,
+    pub doc_date_to: Option<String>,
     pub min_size: Option<i64>,
     pub max_size: Option<i64>,
     pub limit: Option<i64>,
@@ -56,6 +58,17 @@ fn build_where(f: &SearchFilters) -> (String, Vec<Box<dyn ToSql>>) {
     }
     if let Some(d) = f.date_to.as_deref().filter(|x| !x.trim().is_empty()) {
         sql.push_str(" AND substr(o.created_at,1,10)<=?");
+        args.push(Box::new(d.trim().to_string()));
+    }
+    // Дата Документу: перетин діапазонів. Документ з датами [from,to]
+    // потрапляє у запит, якщо його діапазон перекриває фільтр.
+    // Документи без дат при активному фільтрі не показуються (NULL-порівняння).
+    if let Some(d) = f.doc_date_from.as_deref().filter(|x| !x.trim().is_empty()) {
+        sql.push_str(" AND COALESCE(o.doc_date_to, o.doc_date_from) >= ?");
+        args.push(Box::new(d.trim().to_string()));
+    }
+    if let Some(d) = f.doc_date_to.as_deref().filter(|x| !x.trim().is_empty()) {
+        sql.push_str(" AND COALESCE(o.doc_date_from, o.doc_date_to) <= ?");
         args.push(Box::new(d.trim().to_string()));
     }
     if let Some(n) = f.min_size.filter(|x| *x >= 0) {
