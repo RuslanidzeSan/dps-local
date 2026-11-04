@@ -194,3 +194,45 @@ input[type="checkbox"] { accent-color: var(--accent); }
 
 .mono { font-family: var(--mono); }
 .empty { color: var(--ink-soft); font-style: italic; }
+
+/* ---------- D2.1: каркас — оболонка, шапка, вкладки ---------- */
+.app-shell { min-height: 100vh; padding: 20px 24px; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.brand { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.brand small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-soft); }
+
+.scanline { margin-top: 6px; font-size: 12.5px; color: var(--ink-soft); text-align: right; }
+.bad-count { color: var(--bad); font-weight: 600; }
+
+.tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+.tabs button {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.tabs button:hover { background: var(--surface); color: var(--ink); border-color: transparent; }
+.tabs button.on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(29, 53, 87, 0.15);
+}
