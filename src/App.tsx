@@ -47,6 +47,22 @@ interface FixityReport {
 
 type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit";
 
+// Іконка типу файлу за розширенням
+function fileIcon(path: string): string {
+  const ext = (path.split(".").pop() || "").toLowerCase();
+  if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "tif", "tiff", "heic"].includes(ext)) return "🖼️";
+  if (ext === "pdf") return "📕";
+  if (["doc", "docx", "rtf", "odt", "pages"].includes(ext)) return "📄";
+  if (["xls", "xlsx", "csv", "numbers", "ods"].includes(ext)) return "📊";
+  if (["ppt", "pptx", "key", "odp"].includes(ext)) return "📽️";
+  if (["mp3", "wav", "aac", "flac", "m4a"].includes(ext)) return "🎵";
+  if (["mp4", "mov", "avi", "mkv"].includes(ext)) return "🎬";
+  if (["txt", "md", "rtfd"].includes(ext)) return "📝";
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "🗜️";
+  if (["eml", "msg"].includes(ext)) return "✉️";
+  return "📁";
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("archive");
 
@@ -164,8 +180,8 @@ export default function App() {
   };
 
   // Завантажує мініатюри лише для тих документів, яких ще немає в кеші
-  const fetchThumbnails = async (objs: ArchiveObject[]) => {
-    const needed = objs.filter(o => !(o.id in thumbs));
+    const fetchThumbnails = async (objs: ArchiveObject[], force = false) => {
+    const needed = force ? objs : objs.filter(o => !(o.id in thumbs));
     if (needed.length === 0) return;
     const results = await Promise.all(needed.map(async o => {
       const t = await invoke<string | null>("get_thumbnail_command", { objectId: o.id }).catch(() => null);
@@ -504,7 +520,7 @@ export default function App() {
                 const n = await invoke<number>("generate_thumbnails_command");
                 setThumbs({});
                 setStatus(`✅ Створено мініатюр: ${n}.`);
-                if (viewMode === "gallery") fetchThumbnails(objects);
+                                if (viewMode === "gallery") fetchThumbnails(objects, true);
               } catch (err: any) {
                 setStatus(`Помилка генерації мініатюр: ${String(err)}`);
               } finally { setLoading(false); }
@@ -647,7 +663,7 @@ export default function App() {
                         {thumbs[obj.id] ? (
                           <img src={thumbs[obj.id]!} alt={obj.display_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
-                          <span style={{ fontSize: "2rem" }}>📄</span>
+                                                    <span style={{ fontSize: "2rem" }} title={obj.file_path}>{fileIcon(obj.file_path)}</span>
                         )}
                       </div>
                       <div style={{ fontWeight: "bold", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={obj.display_name}>{obj.display_name}</div>

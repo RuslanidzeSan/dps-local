@@ -20,9 +20,17 @@ pub fn is_image_extension(ext: Option<&str>) -> bool {
 /// Створює JPEG-мініатюру для файла-джерела.
 /// Ok(false) = джерело не зображення або недоступне (не помилка, а пропуск).
 pub fn generate_thumbnail_at(source: &Path, dest: &Path) -> Result<bool, String> {
-    let img = match image::open(source) {
-        Ok(i) => i,
-        Err(_) => return Ok(false),
+    // Визначаємо формат за ВМІСТОМ файлу (магічні байти), а не за розширенням —
+    // надійніше для копій у сховищі.
+    let img = match image::ImageReader::open(source) {
+        Ok(reader) => match reader.with_guessed_format() {
+            Ok(guessing) => match guessing.decode() {
+                Ok(i) => i,
+                Err(_) => return Ok(false), // не зображення
+            },
+            Err(_) => return Ok(false), // не вдалося визначити формат
+        },
+        Err(_) => return Ok(false), // файл недоступний
     };
     let thumb = img.thumbnail(THUMB_MAX, THUMB_MAX);
     if let Some(parent) = dest.parent() {
