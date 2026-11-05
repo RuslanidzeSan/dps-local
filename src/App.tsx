@@ -17,6 +17,17 @@ interface ArchiveObject {
   created_at: string;
 }
 
+interface AttrInfoDTO {
+  id: string;
+  code: string;
+  name: string;
+  data_type: string;
+  unit: string | null;
+  list_values: string | null;
+  created_at: string;
+  usage_count: number;
+}
+
 interface TagInfoDTO { id: string; tag_name: string; created_at: string; usage_count: number; }
 interface PersonInfoDTO { id: string; person_name: string; created_at: string; usage_count: number; }
 interface LocationInfoDTO { id: string; location_name: string; created_at: string; usage_count: number; }
@@ -93,6 +104,14 @@ export default function App() {
   const [allTags, setAllTags] = useState<TagInfoDTO[]>([]);
   const [allPersons, setAllPersons] = useState<PersonInfoDTO[]>([]);
   const [allLocations, setAllLocations] = useState<LocationInfoDTO[]>([]);
+  // Атрибути (крок A1)
+  const [allAttrs, setAllAttrs] = useState<AttrInfoDTO[]>([]);
+  const [newAttrName, setNewAttrName] = useState<string>("");
+  const [newAttrType, setNewAttrType] = useState<string>("text");
+  const [newAttrUnit, setNewAttrUnit] = useState<string>("");
+  const [newAttrList, setNewAttrList] = useState<string>("");
+  const [editingAttrId, setEditingAttrId] = useState<string | null>(null);
+  const [editingAttrName, setEditingAttrName] = useState<string>("");
   const [auditLogs, setAuditLogs] = useState<AuditLogDTO[]>([]);
 
   const [exportFiles, setExportFiles] = useState<ExportInfoDTO[]>([]);
@@ -225,6 +244,7 @@ export default function App() {
       setAllTags(await invoke<TagInfoDTO[]>("get_all_tags_modal"));
       setAllPersons(await invoke<PersonInfoDTO[]>("get_all_persons_modal"));
       setAllLocations(await invoke<LocationInfoDTO[]>("get_all_locations_modal"));
+      setAllAttrs(await invoke<AttrInfoDTO[]>("get_all_attrs_modal"));
       setAuditLogs(await invoke<AuditLogDTO[]>("get_audit_logs_modal"));
     } catch (err) { console.error(err); }
   };
@@ -363,6 +383,23 @@ export default function App() {
     fetchMetadata(selectedObject.id);
     fetchAllData();
     fetchFilteredObjects();
+  };
+
+  const handleAddAttr = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAttrName.trim()) return;
+    try {
+      await invoke("add_attr_handler", {
+        name: newAttrName.trim(),
+        dataType: newAttrType,
+        unit: newAttrUnit.trim() || null,
+        listValues: newAttrList.trim() || null,
+      });
+      setNewAttrName(""); setNewAttrUnit(""); setNewAttrList("");
+      fetchAllData();
+    } catch (err: any) {
+      setStatus(`Помилка додавання атрибута: ${String(err)}`);
+    }
   };
 
   const handleMergeTags = async () => {
@@ -529,6 +566,7 @@ export default function App() {
         <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} className={activeTab === "tags" ? "on" : ""}>🏷 Теги</button>
         <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} className={activeTab === "persons" ? "on" : ""}>👤 Люди</button>
         <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} className={activeTab === "locations" ? "on" : ""}>📍 Місця</button>
+        <button onClick={() => { setActiveTab("attrs"); fetchAllData(); }} className={activeTab === "attrs" ? "on" : ""}>🧩 Атрибути</button>
         <button onClick={() => { setActiveTab("exports"); fetchExports(); }} className={activeTab === "exports" ? "on" : ""}>📤 Експорти</button>
         <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} className={activeTab === "audit" ? "on" : ""}>📜 Журнал дій</button>
       </nav>
@@ -892,6 +930,53 @@ export default function App() {
       )}
 
       {/* ВКЛАДКА: ПЕРСОНАЛІЇ */}
+      {/* ВКЛАДКА: АТРИБУТИ */}
+      {activeTab === "attrs" && (
+        <div className="panel">
+          <h2>Атрибути</h2>
+          <div className="hint">Атрибут — додаткове поле архівної картки (дата зйомки, об'єктив, кількість сторінок…). Заповнюється у картці файлу — крок A3.</div>
+          <form onSubmit={handleAddAttr} className="addform" style={{ marginBottom: "12px" }}>
+            <input type="text" placeholder="Назва (напр. «Дата зйомки»)" value={newAttrName} onChange={e => setNewAttrName(e.target.value)} style={{ flex: 1 }} required />
+            <select value={newAttrType} onChange={e => setNewAttrType(e.target.value)}>
+              <option value="text">Текст</option>
+              <option value="number">Число</option>
+              <option value="date">Дата</option>
+              <option value="select">Список</option>
+            </select>
+            <input type="text" placeholder="Одиниця (мм, стор.)" value={newAttrUnit} onChange={e => setNewAttrUnit(e.target.value)} />
+            <input type="text" placeholder="Значення списку, через ;" value={newAttrList} onChange={e => setNewAttrList(e.target.value)} style={{ flex: 1 }} />
+            <button type="submit" className="btn primary">Додати атрибут</button>
+          </form>
+          <table className="objtable">
+            <thead><tr><th>Назва</th><th>Тип</th><th>Одиниця</th><th>Значення списку</th><th>Файлів</th><th style={{ textAlign: "right" }}>Дії</th></tr></thead>
+            <tbody>
+              {allAttrs.map(a => (
+                <tr key={a.id}>
+                  <td>{editingAttrId === a.id ? <input value={editingAttrName} onChange={e => setEditingAttrName(e.target.value)} /> : <strong>{a.name}</strong>}</td>
+                  <td>{a.data_type === "text" ? "Текст" : a.data_type === "number" ? "Число" : a.data_type === "date" ? "Дата" : "Список"}</td>
+                  <td>{a.unit || "—"}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{a.list_values ? a.list_values.split(";").join(", ") : "—"}</td>
+                  <td>{a.usage_count}</td>
+                  <td style={{ textAlign: "right" }}>
+                    {editingAttrId === a.id ? (
+                      <>
+                        <button onClick={async () => { await invoke("update_attr_name", { attrId: a.id, newName: editingAttrName }); setEditingAttrId(null); fetchAllData(); }} className="btn primary" style={{ marginRight: "5px" }}>Зберегти</button>
+                        <button onClick={() => setEditingAttrId(null)} className="btn">Скасувати</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditingAttrId(a.id); setEditingAttrName(a.name); }} className="btn" style={{ marginRight: "5px" }}>Редагувати</button>
+                        <button onClick={async () => { if (confirm("Видалити атрибут?")) { await invoke("delete_attr_record", { attrId: a.id }); fetchAllData(); } }} className="btn danger">Видалити</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {activeTab === "persons" && (
         <div className="panel">
           <h2>Люди</h2>

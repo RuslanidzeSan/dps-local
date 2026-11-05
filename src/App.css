@@ -2,31 +2,8 @@
    Chartularius — дизайн-система «архівна гравюра», етап D1
    ============================================================ */
 
+/* Темна тема — основна (етап D3.1). Світла гравюра — у [data-theme="light"] */
 :root {
-  color-scheme: light;
-  --bg:        #f3ecdd;
-  --surface:   #fdfaf2;
-  --surface-2: #ece4d0;
-  --ink:      #1d3557;
-  --ink-soft: #5b6b82;
-  --line:        rgba(29, 53, 87, 0.14);
-  --line-strong: rgba(29, 53, 87, 0.30);
-  --accent:      #2f6fde;
-  --accent-soft: rgba(47, 111, 222, 0.12);
-  --gold:        #d9a441;
-  --ok:     #2e7d4f;
-  --warn:   #b7791f;
-  --bad:    #c0392b;
-  --fixity: #7c5cd6;
-  --shadow: 0 10px 30px rgba(29, 53, 87, 0.08);
-  --radius:    12px;
-  --radius-sm: 10px;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-          "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-
-:root[data-theme="dark"] {
   color-scheme: dark;
   --bg:        #14181f;
   --surface:   #1b2129;
@@ -37,31 +14,40 @@
   --line-strong: rgba(255, 255, 255, 0.18);
   --accent:      #6aa2ff;
   --accent-soft: rgba(106, 162, 255, 0.16);
+  --gold:        #d9a441;
   --ok:     #5fbf8a;
   --warn:   #e0b153;
   --bad:    #e57368;
   --fixity: #a18ae0;
+  --on-accent: #0d1220;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --radius:    12px;
+  --radius-sm: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg:        #14181f;
-    --surface:   #1b2129;
-    --surface-2: #242c37;
-    --ink:       #dfe6f0;
-    --ink-soft:  #94a2b8;
-    --line:        rgba(255, 255, 255, 0.08);
-    --line-strong: rgba(255, 255, 255, 0.18);
-    --accent:      #6aa2ff;
-    --accent-soft: rgba(106, 162, 255, 0.16);
-    --ok:     #5fbf8a;
-    --warn:   #e0b153;
-    --bad:    #e57368;
-    --fixity: #a18ae0;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.40);
-  }
+/* Світла тема «архівна гравюра» — вмикається через <html data-theme="light"> */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:        #f3ecdd;
+  --surface:   #fdfaf2;
+  --surface-2: #ece4d0;
+  --ink:      #1d3557;
+  --ink-soft: #5b6b82;
+  --line:        rgba(29, 53, 87, 0.14);
+  --line-strong: rgba(29, 53, 87, 0.30);
+  --accent:      #2f6fde;
+  --accent-soft: rgba(47, 111, 222, 0.12);
+  --ok:     #2e7d4f;
+  --warn:   #b7791f;
+  --bad:    #c0392b;
+  --fixity: #7c5cd6;
+  --on-accent: #ffffff;
+  --shadow: 0 10px 30px rgba(29, 53, 87, 0.08);
+  --shadow-sm: 0 1px 3px rgba(29, 53, 87, 0.15);
 }
 
 /* ---------- база ---------- */
@@ -157,10 +143,10 @@ input[type="checkbox"] { accent-color: var(--accent); }
 }
 .btn:hover { background: var(--accent-soft); border-color: var(--accent); }
 
-.btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.btn.primary { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 .btn.primary:hover { background: var(--accent); filter: brightness(1.1); }
 
-.btn.danger { background: var(--bad); border-color: transparent; color: #fff; }
+.btn.danger { background: var(--bad); border-color: transparent; color: var(--on-accent); }
 .btn.danger:hover { background: var(--bad); filter: brightness(1.1); }
 
 .btn.ghost { background: transparent; border-color: transparent; color: var(--ink-soft); }
@@ -190,7 +176,7 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 2px; gap: 2px; }
 .seg button { background: transparent; border: none; border-radius: 8px; padding: 4px 12px; font-weight: 500; color: var(--ink-soft); }
 .seg button:hover { background: var(--surface); color: var(--ink); }
-.seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(29, 53, 87, 0.15); }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
 
 .mono { font-family: var(--mono); }
 .empty { color: var(--ink-soft); font-style: italic; }
@@ -234,7 +220,7 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .tabs button.on {
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 1px 3px rgba(29, 53, 87, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ---------- D2.2: панель дій і фільтри ---------- */
@@ -269,7 +255,7 @@ input[type="checkbox"] { accent-color: var(--accent); }
   white-space: nowrap;
 }
 
-.btn.fixity { background: var(--fixity); border-color: transparent; color: #fff; }
+.btn.fixity { background: var(--fixity); border-color: transparent; color: var(--on-accent); }
 .btn.fixity:hover { background: var(--fixity); filter: brightness(1.1); }
 
 /* ---------- D2.3: список документів ---------- */
