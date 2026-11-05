@@ -124,6 +124,17 @@ async fn add_tag_to_object(_app: AppHandle, object_id: String, tag_name: String)
 }
 
 #[derive(serde::Serialize)]
+pub struct RegistryStatsDTO {
+    total_objects: i64,
+    active: i64,
+    pending_deletion: i64,
+    checksum_error: i64,
+    other_status: i64,
+    total_bytes: i64,
+    inaccessible_locations: i64,
+}
+
+#[derive(serde::Serialize)]
 pub struct AttrInfoDTO {
     id: String,
     code: String,
@@ -193,6 +204,21 @@ async fn update_attr_name(_app: AppHandle, attr_id: String, new_name: String) ->
 async fn delete_attr_record(_app: AppHandle, attr_id: String) -> Result<(), String> {
     let conn = db::open_database()?;
     services::attrs::delete_attr(&conn, &attr_id)
+}
+
+#[tauri::command]
+async fn get_registry_stats_command(_app: AppHandle) -> Result<RegistryStatsDTO, String> {
+    let conn = db::open_database()?;
+    let s = services::stats::get_registry_stats(&conn)?;
+    Ok(RegistryStatsDTO {
+        total_objects: s.total_objects,
+        active: s.active,
+        pending_deletion: s.pending_deletion,
+        checksum_error: s.checksum_error,
+        other_status: s.other_status,
+        total_bytes: s.total_bytes,
+        inaccessible_locations: s.inaccessible_locations,
+    })
 }
 
 #[tauri::command]
@@ -455,6 +481,7 @@ pub fn run() {
             add_attr_handler,
             update_attr_name,
             delete_attr_record,
+            get_registry_stats_command,
             get_audit_logs_modal,
             search_objects_filtered,
             search_objects_v2,

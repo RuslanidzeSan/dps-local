@@ -67,7 +67,7 @@ interface DocumentCard {
   description: string | null;
 }
 
-type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit";
+type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit" | "attrs";
 
 // Іконка типу файлу за розширенням
 function fileIcon(path: string): string {

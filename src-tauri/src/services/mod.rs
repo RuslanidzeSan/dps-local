@@ -1,3 +1,4 @@
+pub mod stats;
 pub mod ingest;
 pub mod attrs;
 pub mod tags;
