@@ -136,6 +136,18 @@ export default function App() {
  
   // Режим перегляду реєстру + кеш мініатюр (object_id → data-URL або null)
   const [viewMode, setViewMode] = useState<"table" | "gallery">("table");
+  // Налаштування вигляду галереї (етап D3.2), зберігаються у localStorage
+  const [viewCardSize, setViewCardSize] = useState<"s" | "m" | "l">(() => {
+    const v = localStorage.getItem("viewCardSize");
+    return v === "s" || v === "l" ? v : "m";
+  });
+  const [viewThumbFit, setViewThumbFit] = useState<"fit" | "fill">(() => {
+    return localStorage.getItem("viewThumbFit") === "fit" ? "fit" : "fill";
+  });
+  const [viewShowNames, setViewShowNames] = useState<boolean>(() => {
+    return localStorage.getItem("viewShowNames") !== "0";
+  });
+  const [viewPanelOpen, setViewPanelOpen] = useState<boolean>(false);
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   // Архівна картка документа (редагована частина)
   const [card, setCard] = useState<DocumentCard | null>(null);
@@ -260,6 +272,13 @@ export default function App() {
     if (viewMode === "gallery") fetchThumbnails(objects);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
+
+  // Зберігаємо налаштування вигляду між запусками
+  useEffect(() => {
+    localStorage.setItem("viewCardSize", viewCardSize);
+    localStorage.setItem("viewThumbFit", viewThumbFit);
+    localStorage.setItem("viewShowNames", viewShowNames ? "1" : "0");
+  }, [viewCardSize, viewThumbFit, viewShowNames]);
 
   // Зміна будь-якого фільтра скидає реєстр на першу сторінку
   useEffect(() => {
@@ -712,6 +731,34 @@ export default function App() {
                   <button onClick={() => setViewMode("table")} className={viewMode === "table" ? "on" : ""}>☰ Таблиця</button>
                   <button onClick={() => setViewMode("gallery")} className={viewMode === "gallery" ? "on" : ""}>🖼 Галерея</button>
                 </div>
+                {viewMode === "gallery" && (
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => setViewPanelOpen(o => !o)} className={"btn" + (viewPanelOpen ? " primary" : "")}>⚙ Вигляд</button>
+                    {viewPanelOpen && (
+                      <div className="viewpanel">
+                        <div className="vrow"><span>Розмір карток</span>
+                          <div className="seg">
+                            <button onClick={() => setViewCardSize("s")} className={viewCardSize === "s" ? "on" : ""}>S</button>
+                            <button onClick={() => setViewCardSize("m")} className={viewCardSize === "m" ? "on" : ""}>M</button>
+                            <button onClick={() => setViewCardSize("l")} className={viewCardSize === "l" ? "on" : ""}>L</button>
+                          </div>
+                        </div>
+                        <div className="vrow"><span>Мініатюри</span>
+                          <div className="seg">
+                            <button onClick={() => setViewThumbFit("fit")} className={viewThumbFit === "fit" ? "on" : ""}>Вписати</button>
+                            <button onClick={() => setViewThumbFit("fill")} className={viewThumbFit === "fill" ? "on" : ""}>Заповнити</button>
+                          </div>
+                        </div>
+                        <div className="vrow"><span>Назви файлів</span>
+                          <label className="toggle">
+                            <input type="checkbox" checked={viewShowNames} onChange={e => setViewShowNames(e.target.checked)} />
+                            <span className="track"></span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {objects.length === 0 ? (
@@ -746,10 +793,10 @@ export default function App() {
                   </tbody>
                 </table>
               ) : (
-                <div className="gallery">
+                <div className={"gallery size-" + viewCardSize + (viewShowNames ? "" : " nonames")}>
                   {objects.map((obj) => (
                     <div key={obj.id} onClick={() => handleRowClick(obj)} className={"gcard" + (selectedObject?.id === obj.id ? " sel" : "")}>
-                      <div className="gthumb">
+                      <div className={"gthumb" + (viewThumbFit === "fit" ? " contain" : "")}>
                         {thumbs[obj.id] ? (
                           <img src={thumbs[obj.id]!} alt={obj.display_name} />
                         ) : (
