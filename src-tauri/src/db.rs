@@ -46,6 +46,30 @@ pub fn open_database_at(path: &Path) -> Result<Connection, String> {
     Ok(conn)
 }
 
+const ATTRIBUTES_SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS attr_definitions (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    data_type TEXT NOT NULL CHECK(data_type IN ('text','number','date','select')),
+    unit TEXT,
+    list_values TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS attr_values (
+    id TEXT PRIMARY KEY,
+    object_id TEXT NOT NULL REFERENCES archive_objects(id) ON DELETE RESTRICT,
+    attr_id TEXT NOT NULL REFERENCES attr_definitions(id) ON DELETE RESTRICT,
+    value_text TEXT,
+    value_number REAL,
+    value_date TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(object_id, attr_id)
+);
+CREATE INDEX IF NOT EXISTS idx_attr_values_attr ON attr_values(attr_id);
+";
+
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     conn.execute_batch("PRAGMA foreign_keys = ON; CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);")
         .map_err(|e| e.to_string())?;
@@ -55,6 +79,13 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         conn.execute_batch(INITIAL_SCHEMA).map_err(|e| e.to_string())?;
         migrate_legacy_runtime_schema(conn)?;
         conn.execute("INSERT INTO _migrations (name, applied_at) VALUES ('001_initial_schema', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))", [])
+            .map_err(|e| e.to_string())?;
+    }
+    let applied_002: Option<String> = conn.query_row("SELECT name FROM _migrations WHERE name = '002_attributes'", [], |r| r.get(0))
+        .optional().map_err(|e| e.to_string())?;
+    if applied_002.is_none() {
+        conn.execute_batch(ATTRIBUTES_SCHEMA).map_err(|e| e.to_string())?;
+        conn.execute("INSERT INTO _migrations (name, applied_at) VALUES ('002_attributes', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))", [])
             .map_err(|e| e.to_string())?;
     }
     Ok(())

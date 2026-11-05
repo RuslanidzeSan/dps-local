@@ -124,6 +124,18 @@ async fn add_tag_to_object(_app: AppHandle, object_id: String, tag_name: String)
 }
 
 #[derive(serde::Serialize)]
+pub struct AttrInfoDTO {
+    id: String,
+    code: String,
+    name: String,
+    data_type: String,
+    unit: Option<String>,
+    list_values: Option<String>,
+    created_at: String,
+    usage_count: i64,
+}
+
+#[derive(serde::Serialize)]
 pub struct TagInfoDTO {
     id: String,
     tag_name: String,
@@ -147,6 +159,40 @@ async fn get_all_tags_modal(_app: AppHandle) -> Result<Vec<TagInfoDTO>, String> 
 async fn update_tag_name(_app: AppHandle, tag_id: String, new_name: String) -> Result<(), String> {
     let conn = db::open_database()?;
     services::tags::update_tag(&conn, &tag_id, &new_name)
+}
+
+#[tauri::command]
+async fn get_all_attrs_modal(_app: AppHandle) -> Result<Vec<AttrInfoDTO>, String> {
+    let conn = db::open_database()?;
+    let attrs = services::attrs::get_all_attrs_with_stats(&conn)?;
+    Ok(attrs.into_iter().map(|a| AttrInfoDTO {
+        id: a.id,
+        code: a.code,
+        name: a.name,
+        data_type: a.data_type,
+        unit: a.unit,
+        list_values: a.list_values,
+        created_at: a.created_at,
+        usage_count: a.usage_count,
+    }).collect())
+}
+
+#[tauri::command]
+async fn add_attr_handler(_app: AppHandle, name: String, data_type: String, unit: Option<String>, list_values: Option<String>) -> Result<(), String> {
+    let mut conn = db::open_database()?;
+    services::attrs::add_attr(&mut conn, &name, &data_type, unit.as_deref(), list_values.as_deref())
+}
+
+#[tauri::command]
+async fn update_attr_name(_app: AppHandle, attr_id: String, new_name: String) -> Result<(), String> {
+    let conn = db::open_database()?;
+    services::attrs::update_attr(&conn, &attr_id, &new_name)
+}
+
+#[tauri::command]
+async fn delete_attr_record(_app: AppHandle, attr_id: String) -> Result<(), String> {
+    let conn = db::open_database()?;
+    services::attrs::delete_attr(&conn, &attr_id)
 }
 
 #[tauri::command]
@@ -405,6 +451,10 @@ pub fn run() {
             update_location_name,
             delete_location_record,
             merge_locations_handler,
+            get_all_attrs_modal,
+            add_attr_handler,
+            update_attr_name,
+            delete_attr_record,
             get_audit_logs_modal,
             search_objects_filtered,
             search_objects_v2,
