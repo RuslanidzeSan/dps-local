@@ -7,7 +7,8 @@ fn fresh_db() -> Connection { let conn = Connection::open_in_memory().unwrap(); 
 #[test]
 fn migrations_are_versioned_and_idempotent() {
     let conn = fresh_db(); db::run_migrations(&conn).unwrap();
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM _migrations", [], |r| r.get(0)).unwrap(); assert_eq!(count, 1);
+    let c1: i64 = conn.query_row("SELECT COUNT(*) FROM _migrations WHERE name='001_initial_schema'", [], |r| r.get(0)).unwrap(); assert_eq!(c1, 1);
+    let c2: i64 = conn.query_row("SELECT COUNT(*) FROM _migrations WHERE name='002_attributes'", [], |r| r.get(0)).unwrap(); assert_eq!(c2, 1);
     let user: String = conn.query_row("SELECT username FROM users WHERE id=?1", [LOCAL_USER_ID], |r| r.get(0)).unwrap(); assert_eq!(user, "local-archivist");
 }
 
