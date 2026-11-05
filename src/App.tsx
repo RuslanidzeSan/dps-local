@@ -17,6 +17,16 @@ interface ArchiveObject {
   created_at: string;
 }
 
+interface RegistryStatsDTO {
+  total_objects: number;
+  active: number;
+  pending_deletion: number;
+  checksum_error: number;
+  other_status: number;
+  total_bytes: number;
+  inaccessible_locations: number;
+}
+
 interface AttrInfoDTO {
   id: string;
   code: string;
@@ -148,6 +158,15 @@ export default function App() {
     return localStorage.getItem("viewShowNames") !== "0";
   });
   const [viewPanelOpen, setViewPanelOpen] = useState<boolean>(false);
+  // Статистика реєстру для статус-бара (D3.3)
+  const [registryStats, setRegistryStats] = useState<RegistryStatsDTO | null>(null);
+
+  const formatBytes = (b: number): string => {
+    if (b < 1024) return b + " Б";
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + " КБ";
+    if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + " МБ";
+    return (b / (1024 * 1024 * 1024)).toFixed(2) + " ГБ";
+  };
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   // Архівна картка документа (редагована частина)
   const [card, setCard] = useState<DocumentCard | null>(null);
@@ -257,6 +276,7 @@ export default function App() {
       setAllPersons(await invoke<PersonInfoDTO[]>("get_all_persons_modal"));
       setAllLocations(await invoke<LocationInfoDTO[]>("get_all_locations_modal"));
       setAllAttrs(await invoke<AttrInfoDTO[]>("get_all_attrs_modal"));
+      setRegistryStats(await invoke<RegistryStatsDTO>("get_registry_stats_command"));
       setAuditLogs(await invoke<AuditLogDTO[]>("get_audit_logs_modal"));
     } catch (err) { console.error(err); }
   };
@@ -1206,6 +1226,22 @@ export default function App() {
           </table>
         </div>
       )}
+      <footer className="statusbar">
+        <span>
+          {selectedObject
+            ? `Обрано: ${selectedObject.display_name} · ${formatBytes(selectedObject.file_size_bytes)}`
+            : "Нічого не обрано"}
+        </span>
+        {registryStats && (
+          <span>
+            Всього: {registryStats.total_objects} · Архівовано: {registryStats.active} · Очікує: {registryStats.pending_deletion} · Пошкоджено: {registryStats.checksum_error}
+            {registryStats.inaccessible_locations > 0 && <> · <span className="warn">Недоступних місць: {registryStats.inaccessible_locations}</span></>}
+            <> · Обсяг: {formatBytes(registryStats.total_bytes)}</>
+          </span>
+        )}
+        <span className="spacer" />
+        <span className="brandnote">Chartularius · локальний архів</span>
+      </footer>
     </main>
   );
 }

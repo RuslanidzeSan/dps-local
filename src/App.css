@@ -434,3 +434,14 @@ td.emptycell { padding: 15px; text-align: center; color: var(--ink-soft); font-s
                         transition: left 0.15s, background 0.15s; }
 .toggle input:checked + .track { background: var(--accent-soft); border-color: var(--accent); }
 .toggle input:checked + .track::after { left: 18px; background: var(--accent); }
+
+/* ---------- D3.3: статус-бар ---------- */
+.app-shell { padding-bottom: 56px; } /* місце під приліплений статус-бар */
+.statusbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+             display: flex; align-items: center; gap: 14px;
+             height: 32px; padding: 0 16px;
+             background: var(--surface); border-top: 1px solid var(--line);
+             color: var(--ink-soft); font-size: 11.5px; }
+.statusbar .spacer { flex: 1; }
+.statusbar .warn { color: var(--warn); font-weight: 600; }
+.statusbar .brandnote { opacity: 0.8; }
