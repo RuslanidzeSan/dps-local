@@ -74,10 +74,26 @@ interface DocumentCard {
   doc_date_from: string | null;
   doc_date_to: string | null;
   source_location: string | null;
+  card_template: string | null;
   description: string | null;
 }
 
 type TabType = "archive" | "tags" | "persons" | "locations" | "exports" | "audit" | "attrs";
+
+// ---------- A2: шаблони архівних карток ----------
+type CardTemplate = "standard" | "photo" | "document" | "certificate";
+const CARD_TEMPLATES: { id: CardTemplate; label: string }[] = [
+  { id: "standard", label: "📋 Стандартна" },
+  { id: "photo", label: "📷 Фото" },
+  { id: "document", label: "📄 Документ" },
+  { id: "certificate", label: "📜 Свідоцтво" },
+];
+const CARD_FIELD_LABELS: Record<CardTemplate, { author: string; purpose: string; date: string; source: string }> = {
+  standard:    { author: "Автор / оператор", purpose: "Призначення файлу", date: "Дата створення", source: "Первинне розташування на носії" },
+  photo:       { author: "Фотограф", purpose: "Подія / свято", date: "Дата зйомки", source: "Місце зйомки" },
+  document:    { author: "Автор / установа", purpose: "Тип документа", date: "Дата документа", source: "Джерело (архів, фонд)" },
+  certificate: { author: "Ким видано", purpose: "Тип свідоцтва", date: "Дата видачі", source: "Місце реєстрації" },
+};
 
 // Іконка типу файлу за розширенням
 function fileIcon(path: string): string {
@@ -170,6 +186,13 @@ export default function App() {
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   // Архівна картка документа (редагована частина)
   const [card, setCard] = useState<DocumentCard | null>(null);
+
+  // Активний шаблон картки та підписи його полів (A2)
+  const cardTemplate: CardTemplate =
+    card?.card_template === "photo" || card?.card_template === "document" || card?.card_template === "certificate"
+      ? card.card_template
+      : "standard";
+  const cardLbl = CARD_FIELD_LABELS[cardTemplate];
 
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -383,6 +406,7 @@ export default function App() {
           doc_date_from: card.doc_date_from || null,
           doc_date_to: card.doc_date_to || null,
           source_location: card.source_location || null,
+          card_template: cardTemplate === "standard" ? null : cardTemplate,
         },
       });
       setStatus("✅ Картку документа оновлено.");
@@ -892,6 +916,16 @@ export default function App() {
                   {/* АРХІВНА КАРТКА v2 */}
                   <h4>📋 Архівна картка</h4>
                   {card && (
+                    <div className="seg" style={{ margin: "8px 0" }}>
+                      {CARD_TEMPLATES.map(t => (
+                        <button key={t.id} className={cardTemplate === t.id ? "on" : ""}
+                          onClick={() => { setCardField("card_template", t.id); if (t.id === "photo" && !(card.file_kind || "").trim()) setCardField("file_kind", "Цифрове фото"); }}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {card && (
                     <div className="cardform">
                       <label>Тип файлу
                         <input list="file-kind-options" value={card.file_kind || ""} onChange={e => setCardField("file_kind", e.target.value)} placeholder="Цифрове фото, скан, документ..." />
@@ -902,21 +936,21 @@ export default function App() {
                         <option value="Електронний документ" />
                         <option value="Оцифровлення" />
                       </datalist>
-                      <label>Автор / оператор
+                      <label>{cardLbl.author}
                         <input value={card.author || ""} onChange={e => setCardField("author", e.target.value)} />
                       </label>
-                      <label>Призначення файлу
+                      <label>{cardLbl.purpose}
                         <input value={card.purpose || ""} onChange={e => setCardField("purpose", e.target.value)} />
                       </label>
                       <div className="datarow">
-                        <label>Дата створення від
+                        <label>{cardLbl.date} від
                           <input type="date" value={card.doc_date_from || ""} onChange={e => setCardField("doc_date_from", e.target.value)} />
                         </label>
                         <label>до
                           <input type="date" value={card.doc_date_to || ""} onChange={e => setCardField("doc_date_to", e.target.value)} />
                         </label>
                       </div>
-                      <label>Первинне розташування на носії
+                      <label>{cardLbl.source}
                         <input value={card.source_location || ""} onChange={e => setCardField("source_location", e.target.value)} placeholder="Disc_7/Scan_2005/" />
                       </label>
                       <button className="btn primary" onClick={handleSaveCard}>💾 Зберегти картку</button>
