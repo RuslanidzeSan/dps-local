@@ -182,7 +182,7 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .empty { color: var(--ink-soft); font-style: italic; }
 
 /* ---------- D2.1: каркас — оболонка, шапка, вкладки ---------- */
-.app-shell { min-height: 100vh; padding: 20px 24px; }
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 236px 1fr; }
 
 .topbar {
   display: flex;
@@ -445,3 +445,27 @@ td.emptycell { padding: 15px; text-align: center; color: var(--ink-soft); font-s
 .statusbar .spacer { flex: 1; }
 .statusbar .warn { color: var(--warn); font-weight: 600; }
 .statusbar .brandnote { opacity: 0.8; }
+
+/* ---------- D3.4: бокова панель ---------- */
+.sidebar { background: var(--surface); border-right: 1px solid var(--line);
+           padding: 18px 12px; position: sticky; top: 0; height: 100vh;
+           overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; margin: 0 6px 18px; }
+.sidebar .logo { width: 34px; height: 34px; flex: none; border-radius: 50%;
+                 border: 1.5px solid var(--gold); color: var(--gold);
+                 display: flex; align-items: center; justify-content: center;
+                 font-weight: 800; font-size: 16px; font-family: Georgia, serif; }
+.sidebar .brandtext { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+.sidebar .brandtext small { display: block; font-size: 11px; font-weight: 500; color: var(--ink-soft); }
+.navgroup { margin: 0 0 6px; padding: 0 8px; font-size: 10.5px; font-weight: 700;
+            color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; }
+.nav { display: flex; align-items: center; gap: 8px; width: 100%;
+       padding: 6px 8px; margin-bottom: 2px; border: none; background: transparent;
+       border-radius: 8px; font-size: 13px; text-align: left;
+       color: var(--ink-soft); cursor: pointer; }
+.nav:hover { background: var(--surface-2); color: var(--ink); }
+.nav.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav .cnt { margin-left: auto; font-size: 11px; border-radius: 999px;
+            padding: 0 7px; background: var(--surface-2); color: var(--ink-soft); }
+.nav.on .cnt { background: rgba(106, 162, 255, 0.20); color: var(--accent); }
+.content { padding: 20px 24px; min-width: 0; }

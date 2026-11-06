@@ -592,23 +592,41 @@ export default function App() {
 
   return (
         <main className="app-shell">
-      <header className="topbar">
+      <aside className="sidebar">
         <div className="brand">
-          Chartularius
-          <small>цифровий архів</small>
+          <span className="logo">C</span>
+          <span className="brandtext">Chartularius<small>цифровий архів</small></span>
         </div>
-      </header>
 
-      {/* Верхні вкладки */}
-      <nav className="tabs">
-        <button onClick={() => setActiveTab("archive")} className={activeTab === "archive" ? "on" : ""}>🗂 Архівовані файли</button>
-        <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} className={activeTab === "tags" ? "on" : ""}>🏷 Теги</button>
-        <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} className={activeTab === "persons" ? "on" : ""}>👤 Люди</button>
-        <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} className={activeTab === "locations" ? "on" : ""}>📍 Місця</button>
-        <button onClick={() => { setActiveTab("attrs"); fetchAllData(); }} className={activeTab === "attrs" ? "on" : ""}>🧩 Атрибути</button>
-        <button onClick={() => { setActiveTab("exports"); fetchExports(); }} className={activeTab === "exports" ? "on" : ""}>📤 Експорти</button>
-        <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} className={activeTab === "audit" ? "on" : ""}>📜 Журнал дій</button>
-      </nav>
+        <div className="navgroup">Архів</div>
+        <button onClick={() => setActiveTab("archive")} className={"nav" + (activeTab === "archive" ? " on" : "")}>
+          🗂 Усі файли <span className="cnt">{registryStats ? registryStats.total_objects : "…"}</span>
+        </button>
+
+        <div className="navgroup">Довідники</div>
+        <button onClick={() => { setActiveTab("tags"); fetchAllData(); }} className={"nav" + (activeTab === "tags" ? " on" : "")}>
+          🏷 Теги <span className="cnt">{allTags.length}</span>
+        </button>
+        <button onClick={() => { setActiveTab("persons"); fetchAllData(); }} className={"nav" + (activeTab === "persons" ? " on" : "")}>
+          👤 Люди <span className="cnt">{allPersons.length}</span>
+        </button>
+        <button onClick={() => { setActiveTab("locations"); fetchAllData(); }} className={"nav" + (activeTab === "locations" ? " on" : "")}>
+          📍 Місця <span className="cnt">{allLocations.length}</span>
+        </button>
+        <button onClick={() => { setActiveTab("attrs"); fetchAllData(); }} className={"nav" + (activeTab === "attrs" ? " on" : "")}>
+          🧩 Атрибути <span className="cnt">{allAttrs.length}</span>
+        </button>
+
+        <div className="navgroup">Обслуговування</div>
+        <button onClick={() => { setActiveTab("exports"); fetchExports(); }} className={"nav" + (activeTab === "exports" ? " on" : "")}>
+          📤 Експорти <span className="cnt">{exportFiles.length}</span>
+        </button>
+        <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} className={"nav" + (activeTab === "audit" ? " on" : "")}>
+          📜 Журнал дій <span className="cnt">{auditLogs.length}</span>
+        </button>
+      </aside>
+
+      <section className="content">
 
       {activeTab === "archive" && (
         <>
@@ -1226,6 +1244,8 @@ export default function App() {
           </table>
         </div>
       )}
+      </section>
+
       <footer className="statusbar">
         <span>
           {selectedObject
