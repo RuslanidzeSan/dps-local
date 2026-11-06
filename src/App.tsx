@@ -183,6 +183,9 @@ export default function App() {
     return localStorage.getItem("viewShowNames") !== "0";
   });
   const [viewPanelOpen, setViewPanelOpen] = useState<boolean>(false);
+  // Тема оформлення: dark — базова, light — «архівна гравюра»
+  const [theme, setTheme] = useState<"dark" | "light">(() =>
+    localStorage.getItem("app-theme") === "light" ? "light" : "dark");
   // Статистика реєстру для статус-бара (D3.3)
   const [registryStats, setRegistryStats] = useState<RegistryStatsDTO | null>(null);
 
@@ -353,6 +356,13 @@ export default function App() {
     localStorage.setItem("viewThumbFit", viewThumbFit);
     localStorage.setItem("viewShowNames", viewShowNames ? "1" : "0");
   }, [viewCardSize, viewThumbFit, viewShowNames]);
+
+  // Застосовуємо тему до <html data-theme="light"> і запам'ятовуємо вибір
+  useEffect(() => {
+    if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
+    else document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("app-theme", theme);
+  }, [theme]);
 
   // Зміна будь-якого фільтра скидає реєстр на першу сторінку
   useEffect(() => {
@@ -678,6 +688,13 @@ export default function App() {
         </button>
         <button onClick={() => { setActiveTab("audit"); fetchAllData(); }} className={"nav" + (activeTab === "audit" ? " on" : "")}>
           📜 Журнал дій <span className="cnt">{auditLogs.length}</span>
+        </button>
+
+        <div className="sidegap" />
+        <button className={"nav theme" + (theme === "light" ? " on" : "")}
+          onClick={() => setTheme(t => (t === "dark" ? "light" : "dark"))}>
+          {theme === "dark" ? "🌙 Темна тема" : "☀️ Світла тема"}
+          <span className="cnt">{theme}</span>
         </button>
       </aside>
 

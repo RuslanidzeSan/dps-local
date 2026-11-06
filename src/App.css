@@ -477,3 +477,8 @@ td.emptycell { padding: 15px; text-align: center; color: var(--ink-soft); font-s
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
   padding: 5px 9px; font-size: 12.5px; color: var(--ink); width: 100%;
 }
+
+/* ---------- D5: перемикач теми ---------- */
+.sidebar { display: flex; flex-direction: column; }
+.sidegap { flex: 1; }
+.nav.theme .cnt { font-family: var(--mono); font-size: 10px; }
