@@ -6,6 +6,8 @@ use super::ingest::ArchiveObjectView;
 #[derive(serde::Deserialize, Default, Debug)]
 pub struct SearchFilters {
     pub query: Option<String>,
+    pub attr_id: Option<String>,
+    pub attr_text: Option<String>,
     pub tag_id: Option<String>,
     pub person_id: Option<String>,
     pub location_id: Option<String>,
@@ -78,6 +80,22 @@ fn build_where(f: &SearchFilters) -> (String, Vec<Box<dyn ToSql>>) {
     if let Some(n) = f.max_size.filter(|x| *x >= 0) {
         sql.push_str(" AND s.file_size_bytes<=?");
         args.push(Box::new(n));
+    }
+    // Фільтр за атрибутом: приблизний збіг у типізованій колонці значення.
+    if let (Some(attr), Some(text)) = (
+        f.attr_id.as_deref().filter(|x| !x.is_empty()),
+        f.attr_text.as_deref().filter(|x| !x.trim().is_empty()),
+    ) {
+        let p = format!("%{}%", text.trim());
+        sql.push_str(
+            " AND EXISTS (SELECT 1 FROM attr_values av \
+             WHERE av.object_id=o.id AND av.attr_id=? \
+             AND (av.value_text LIKE ? OR av.value_date LIKE ? OR CAST(av.value_number AS TEXT) LIKE ?))",
+        );
+        args.push(Box::new(attr.to_string()));
+        args.push(Box::new(p.clone()));
+        args.push(Box::new(p.clone()));
+        args.push(Box::new(p));
     }
     (sql, args)
 }

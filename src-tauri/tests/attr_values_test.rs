@@ -103,3 +103,56 @@ fn attr_values_batch_for_visible_objects() {
     assert_eq!(o2[1].value, "25", "число без дробової частини");
     assert_eq!(o2[1].unit.as_deref(), Some("стор."));
 }
+
+fn insert_object_with_storage(conn: &Connection, id: &str) {
+    let now = "2026-01-01T00:00:00Z";
+    conn.execute(
+        "INSERT INTO archive_objects(id,display_name,original_name,file_extension,description,status,document_family_id,created_at,updated_at) VALUES(?1,?2,?2,'.jpg',NULL,'Active',?1,?3,?3)",
+        params![id, format!("file_{id}"), now],
+    ).unwrap();
+    conn.execute(
+        "INSERT INTO representations(id,object_id,representation_type,created_at) VALUES(?1,?2,'original',?3)",
+        params![format!("rep_{id}"), id, now],
+    ).unwrap();
+    conn.execute(
+        "INSERT INTO storage_locations(id,representation_id,storage_type,file_path,file_size_bytes,checksum_sha256,is_accessible,created_at) VALUES(?1,?2,'managed','/tmp/f',?3,NULL,1,?4)",
+        params![format!("st_{id}"), format!("rep_{id}"), 1024, now],
+    ).unwrap();
+}
+
+#[test]
+fn search_filters_by_attribute_value() {
+    use dps_local_lib::services::search::{SearchFilters, search_archive_objects_filtered};
+    let mut conn = fresh_db();
+    insert_object_with_storage(&conn, "o1");
+    insert_object_with_storage(&conn, "o2");
+    attrs::add_attr(&mut conn, "Об'єктив", "select", None, Some("28mm; 50mm")).unwrap();
+    attrs::add_attr(&mut conn, "Дата зйомки", "date", None, None).unwrap();
+    let ids = attrs::get_all_attrs_with_stats(&conn).unwrap();
+    let id_lens = ids.iter().find(|a| a.name == "Об'єктив").unwrap().id.clone();
+    let id_date = ids.iter().find(|a| a.name == "Дата зйомки").unwrap().id.clone();
+
+    attrs::set_object_attr_value(&conn, "o1", &id_lens, Some("50mm")).unwrap();
+    attrs::set_object_attr_value(&conn, "o2", &id_date, Some("1974-07-06")).unwrap();
+
+    let r = search_archive_objects_filtered(&conn, &SearchFilters {
+        attr_id: Some(id_lens.clone()), attr_text: Some("50".into()), ..Default::default()
+    }).unwrap();
+    assert_eq!(r.len(), 1);
+    assert_eq!(r[0].id, "o1");
+
+    let r = search_archive_objects_filtered(&conn, &SearchFilters {
+        attr_id: Some(id_date.clone()), attr_text: Some("1974".into()), ..Default::default()
+    }).unwrap();
+    assert_eq!(r.len(), 1);
+    assert_eq!(r[0].id, "o2");
+
+    assert!(search_archive_objects_filtered(&conn, &SearchFilters {
+        attr_id: Some(id_lens.clone()), attr_text: Some("85mm".into()), ..Default::default()
+    }).unwrap().is_empty());
+
+    let r = search_archive_objects_filtered(&conn, &SearchFilters {
+        attr_id: Some(id_lens), attr_text: None, ..Default::default()
+    }).unwrap();
+    assert_eq!(r.len(), 2);
+}
