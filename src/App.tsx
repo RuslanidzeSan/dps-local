@@ -663,6 +663,14 @@ export default function App() {
           <span className="brandtext">Chartularius<small>цифровий архів</small></span>
         </div>
 
+        <input
+          className="sidesearch"
+          placeholder="🔍 Пошук в архіві…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") setActiveTab("archive"); }}
+        />
+
         <div className="navgroup">Архів</div>
         <button onClick={() => setActiveTab("archive")} className={"nav" + (activeTab === "archive" ? " on" : "")}>
           🗂 Усі файли <span className="cnt">{registryStats ? registryStats.total_objects : "…"}</span>
