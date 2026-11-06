@@ -204,3 +204,47 @@ pub fn set_object_attr_value(conn: &Connection, object_id: &str, attr_id: &str, 
     audit::record_event(conn, LOCAL_USER_ID, "ATTR_VALUE_SET", "attr_values", object_id, Some(&payload)).map_err(|e| e.to_string())?;
     Ok(())
 }
+
+/// Значення атрибутів для списку об'єктів (пакетно, A3+).
+#[derive(serde::Serialize)]
+pub struct ObjectAttrValueRow {
+    pub object_id: String,
+    pub attr_id: String,
+    pub attr_name: String,
+    pub data_type: String,
+    pub unit: Option<String>,
+    pub value: String,
+}
+
+pub fn get_attr_values_for_objects(conn: &Connection, object_ids: &[String]) -> Result<Vec<ObjectAttrValueRow>, String> {
+    if object_ids.is_empty() { return Ok(Vec::new()); }
+    let placeholders = object_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT v.object_id, a.id, a.name, a.data_type, a.unit, \
+                v.value_text, v.value_number, v.value_date \
+         FROM attr_values v JOIN attr_definitions a ON a.id = v.attr_id \
+         WHERE a.is_active = 1 AND v.object_id IN ({placeholders}) \
+         ORDER BY v.object_id, a.name ASC");
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(rusqlite::params_from_iter(object_ids.iter()), |row| {
+        let data_type: String = row.get(3)?;
+        let value_text: Option<String> = row.get(5)?;
+        let value_number: Option<f64> = row.get(6)?;
+        let value_date: Option<String> = row.get(7)?;
+        let value = match data_type.as_str() {
+            "number" => value_number.map(|n| if n.fract() == 0.0 { (n as i64).to_string() } else { n.to_string() }),
+            "date" => value_date,
+            _ => value_text,
+        };
+        Ok(ObjectAttrValueRow {
+            object_id: row.get(0)?,
+            attr_id: row.get(1)?,
+            attr_name: row.get(2)?,
+            data_type,
+            unit: row.get(4)?,
+            value: value.unwrap_or_default(),
+        })
+    }).map_err(|e| e.to_string())?
+      .collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
+    Ok(rows)
+}

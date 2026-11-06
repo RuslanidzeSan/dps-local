@@ -77,3 +77,29 @@ fn attr_values_reject_bad_input_and_clear() {
     let vals = attrs::get_object_attr_values(&conn, "o1").unwrap();
     assert_eq!(vals.iter().find(|x| x.attr_id == id_date).unwrap().value, None);
 }
+
+#[test]
+fn attr_values_batch_for_visible_objects() {
+    let mut conn = fresh_db();
+    insert_object(&conn, "o1");
+    insert_object(&conn, "o2");
+    attrs::add_attr(&mut conn, "Дата зйомки", "date", None, None).unwrap();
+    attrs::add_attr(&mut conn, "Сторінок", "number", Some("стор."), None).unwrap();
+    let ids = attrs::get_all_attrs_with_stats(&conn).unwrap();
+    let id_date = ids.iter().find(|a| a.name == "Дата зйомки").unwrap().id.clone();
+    let id_num = ids.iter().find(|a| a.name == "Сторінок").unwrap().id.clone();
+
+    attrs::set_object_attr_value(&conn, "o1", &id_date, Some("1974-07-06")).unwrap();
+    attrs::set_object_attr_value(&conn, "o2", &id_num, Some("25")).unwrap();
+    attrs::set_object_attr_value(&conn, "o2", &id_date, Some("2001-09-14")).unwrap();
+
+    // пустий запит — без SQL-помилок (IN () не збираємо)
+    assert!(attrs::get_attr_values_for_objects(&conn, &[]).unwrap().is_empty());
+
+    let rows = attrs::get_attr_values_for_objects(&conn, &["o1".into(), "o2".into(), "no-such".into()]).unwrap();
+    assert_eq!(rows.len(), 3, "лише заповнені значення, і тільки для запитаних об'єктів");
+    let o2: Vec<_> = rows.iter().filter(|r| r.object_id == "o2").collect();
+    assert_eq!(o2[0].attr_name, "Дата зйомки", "сортовано за назвою атрибута");
+    assert_eq!(o2[1].value, "25", "число без дробової частини");
+    assert_eq!(o2[1].unit.as_deref(), Some("стор."));
+}
