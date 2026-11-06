@@ -55,6 +55,7 @@ fn update_card_persists_and_audits() {
         doc_date_from: Some("1943-01-15".into()),
         doc_date_to: Some("1945-12-31".into()),
         source_location: Some("Disc_7/Scan_2005/".into()),
+        card_template: None,
     }).unwrap();
 
     let card = get_document_card(&conn, &id).unwrap();

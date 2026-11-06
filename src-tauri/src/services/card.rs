@@ -14,6 +14,7 @@ pub struct DocumentCard {
     pub doc_date_from: Option<String>,
     pub doc_date_to: Option<String>,
     pub source_location: Option<String>,
+    pub card_template: Option<String>,
     pub description: Option<String>,
 }
 
@@ -27,6 +28,7 @@ pub struct CardUpdate {
     pub doc_date_from: Option<String>,
     pub doc_date_to: Option<String>,
     pub source_location: Option<String>,
+    pub card_template: Option<String>,
 }
 
 /// Допоміжна: чистий текст (обрізаний) або None.
@@ -48,7 +50,7 @@ fn clean_date(v: Option<&str>) -> Result<Option<String>, String> {
 pub fn get_document_card(conn: &Connection, object_id: &str) -> Result<DocumentCard, String> {
     conn.query_row(
         "SELECT o.display_name, o.file_kind, o.author, o.purpose, \
-         o.doc_date_from, o.doc_date_to, o.source_location, o.description \
+         o.doc_date_from, o.doc_date_to, o.source_location, o.description, o.card_template \
          FROM archive_objects o WHERE o.id = ?1",
         [object_id],
         |r| {
@@ -62,6 +64,7 @@ pub fn get_document_card(conn: &Connection, object_id: &str) -> Result<DocumentC
                 doc_date_to: r.get(5)?,
                 source_location: r.get(6)?,
                 description: r.get(7)?,
+                card_template: r.get(8)?,
             })
         },
     )
@@ -78,12 +81,17 @@ pub fn update_document_card(conn: &Connection, u: &CardUpdate) -> Result<(), Str
     let doc_date_from = clean_date(u.doc_date_from.as_deref())?;
     let doc_date_to = clean_date(u.doc_date_to.as_deref())?;
     let source_location = clean_text(u.source_location.clone());
+    let card_template = match clean_text(u.card_template.clone()) {
+        None => None,
+        Some(t) if ["standard", "photo", "document", "certificate"].contains(&t.as_str()) => Some(t),
+        Some(t) => return Err(format!("Невідомий шаблон картки '{t}'")),
+    };
 
     let updated_at = Utc::now().to_rfc3339();
     let n = conn.execute(
         "UPDATE archive_objects SET file_kind=?1, author=?2, purpose=?3, doc_date_from=?4, \
-         doc_date_to=?5, source_location=?6, updated_at=?7 WHERE id=?8",
-        params![file_kind, author, purpose, doc_date_from, doc_date_to, source_location, updated_at, u.object_id],
+         doc_date_to=?5, source_location=?6, card_template=?9, updated_at=?7 WHERE id=?8",
+        params![file_kind, author, purpose, doc_date_from, doc_date_to, source_location, updated_at, u.object_id, card_template],
     ).map_err(|e| e.to_string())?;
     if n == 0 {
         return Err(format!("Документ {} не знайдено", u.object_id));

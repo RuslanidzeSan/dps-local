@@ -16,6 +16,8 @@ pub const DESIRED_COLUMNS: &[(&str, &str, &str)] = &[
     ("archive_objects", "doc_date_from", "TEXT"),
     ("archive_objects", "doc_date_to", "TEXT"),
     ("archive_objects", "source_location", "TEXT"),
+    // --- archive_objects: шаблон архівної картки (A2) ---
+    ("archive_objects", "card_template", "TEXT"),
 ];
 
 /// Додає відсутні колонки до існуючих таблиць. Безпечно викликати повторно.
