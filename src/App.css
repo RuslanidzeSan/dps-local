@@ -492,3 +492,11 @@ td.emptycell { padding: 15px; text-align: center; color: var(--ink-soft); font-s
 
 /* ---------- D5.3: гравюра порожніх станів ---------- */
 .engraving { display: block; margin: 4px auto 10px; color: var(--ink-soft); opacity: 0.6; }
+
+/* ---------- A3+: атрибути у реєстрі ---------- */
+.attrcells { max-width: 260px; }
+.apill { display: inline-block; margin: 1px 3px 1px 0; padding: 1px 7px;
+         border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line);
+         font-size: 10.5px; color: var(--ink-soft); white-space: nowrap; }
+.apill.more { opacity: 0.8; }
+.gattrs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; justify-content: center; }

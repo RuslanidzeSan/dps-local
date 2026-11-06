@@ -17,6 +17,15 @@ interface ArchiveObject {
   created_at: string;
 }
 
+interface ObjectAttrValueRow {
+  object_id: string;
+  attr_id: string;
+  attr_name: string;
+  data_type: string;
+  unit: string | null;
+  value: string;
+}
+
 interface ObjectAttrValue {
   attr_id: string;
   attr_name: string;
@@ -226,6 +235,8 @@ export default function App() {
 
   // Значення атрибутів обраного документа (A3)
   const [objectAttrs, setObjectAttrs] = useState<ObjectAttrValue[]>([]);
+  // Значення атрибутів видимих об'єктів реєстру (A3+)
+  const [objectsAttrs, setObjectsAttrs] = useState<Record<string, ObjectAttrValueRow[]>>({});
 
   const fetchObjectAttrs = async (objectId: string) => {
     setObjectAttrs(await invoke<ObjectAttrValue[]>("get_object_attr_values_command", { objectId }));
@@ -367,6 +378,21 @@ export default function App() {
     if (viewMode === "gallery") fetchThumbnails(objects);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
+
+  // Значення атрибутів для видимих об'єктів — одним пакетним запитом (A3+)
+  useEffect(() => {
+    const fetchAttrs = async () => {
+      if (objects.length === 0) { setObjectsAttrs({}); return; }
+      try {
+        const rows = await invoke<ObjectAttrValueRow[]>("get_attr_values_batch_command", { objectIds: objects.map(o => o.id) });
+        const byObj: Record<string, ObjectAttrValueRow[]> = {};
+        for (const r of rows) (byObj[r.object_id] = byObj[r.object_id] || []).push(r);
+        setObjectsAttrs(byObj);
+      } catch { setObjectsAttrs({}); }
+    };
+    fetchAttrs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objects]);
 
   // Зберігаємо налаштування вигляду між запусками
   useEffect(() => {
@@ -909,6 +935,7 @@ export default function App() {
                       <th>Назва</th>
                       <th>Стан</th>
                       <th>Дата архівування</th>
+                      <th>Атрибути</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -924,6 +951,16 @@ export default function App() {
                             <span className="pill bad">Пошкоджено</span>
                           ) : (
                             <span className="pill">{obj.status}</span>
+                          )}
+                        </td>
+                        <td className="attrcells">
+                          {(objectsAttrs[obj.id] || []).slice(0, 3).map(a => (
+                            <span key={a.attr_id} className="apill" title={a.unit ? `${a.attr_name}, ${a.unit}` : a.attr_name}>
+                              {a.attr_name}: {a.value}
+                            </span>
+                          ))}
+                          {(objectsAttrs[obj.id] || []).length > 3 && (
+                            <span className="apill more">+{(objectsAttrs[obj.id] || []).length - 3}</span>
                           )}
                         </td>
                         <td className="mono">{new Date(obj.created_at).toLocaleDateString()}</td>
@@ -944,6 +981,16 @@ export default function App() {
                       </div>
                       <div className="gname" title={obj.display_name}>{obj.display_name}</div>
                       <div className="gmeta">{new Date(obj.created_at).toLocaleDateString()}</div>
+                      {(objectsAttrs[obj.id] || []).length > 0 && (
+                        <div className="gattrs">
+                          {objectsAttrs[obj.id]!.slice(0, 2).map(a => (
+                            <span key={a.attr_id} className="apill">{a.attr_name}: {a.value}</span>
+                          ))}
+                          {objectsAttrs[obj.id]!.length > 2 && (
+                            <span className="apill more">+{objectsAttrs[obj.id]!.length - 2}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
