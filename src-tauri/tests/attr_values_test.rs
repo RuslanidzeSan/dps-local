@@ -156,3 +156,24 @@ fn search_filters_by_attribute_value() {
     }).unwrap();
     assert_eq!(r.len(), 2);
 }
+
+#[test]
+fn export_contains_attribute_columns_and_values() {
+    use dps_local_lib::services::export::{export_objects_csv, export_objects_json};
+    let mut conn = fresh_db();
+    insert_object_with_storage(&conn, "o1");
+    insert_object_with_storage(&conn, "o2");
+    attrs::add_attr(&mut conn, "Об'єктив", "select", None, Some("28mm; 50mm")).unwrap();
+    let ids = attrs::get_all_attrs_with_stats(&conn).unwrap();
+    let id_lens = ids.iter().find(|a| a.name == "Об'єктив").unwrap().id.clone();
+    attrs::set_object_attr_value(&conn, "o1", &id_lens, Some("50mm")).unwrap();
+
+    let csv = export_objects_csv(&conn).unwrap();
+    assert!(csv.contains("checksum_sha256,Об'єктив\n"), "немає колонки атрибута: {csv}");
+    assert!(csv.contains("50mm"));
+    assert_eq!(csv.lines().count(), 3, "заголовок + 2 об'єкти");
+
+    let json = export_objects_json(&conn).unwrap();
+    assert!(json.contains("\"attributes\""));
+    assert!(json.contains("\"Об'єктив\": \"50mm\""));
+}

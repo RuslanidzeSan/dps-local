@@ -94,6 +94,9 @@ pub struct ExportObject {
     pub created_at: String,
     pub file_size_bytes: i64,
     pub checksum_sha256: String,
+    /// Заповнені атрибути (A5). У JSON — як "attributes", порожні пропускаються.
+    #[serde(rename = "attributes", skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub attrs: std::collections::BTreeMap<String, String>,
 }
 
 /// Експортує всі об'єкти у форматі CSV.
@@ -108,13 +111,20 @@ pub fn export_objects_json(conn: &Connection) -> Result<String, String> {
 
 /// Експортує об'єкти у форматі CSV з фільтром за розширенням.
 pub fn export_objects_csv_filtered(conn: &Connection, extension: Option<&str>) -> Result<String, String> {
-    let objects = fetch_objects(conn, extension)?;
+    let mut objects = fetch_objects(conn, extension)?;
+    attach_attributes(conn, &mut objects)?;
     
-    let mut csv = String::from("id,display_name,original_name,file_extension,status,created_at,file_size_bytes,checksum_sha256\n");
+    let attr_names = active_attr_names(conn)?;
+    let mut header = String::from("id,display_name,original_name,file_extension,status,created_at,file_size_bytes,checksum_sha256");
+    for name in &attr_names {
+        header.push(',');
+        header.push_str(&escape_csv(name));
+    }
+    let mut csv = header + "\n";
     
     for obj in objects {
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{},{}\n",
+        let mut row = format!(
+            "{},{},{},{},{},{},{},{}",
             escape_csv(&obj.id),
             escape_csv(&obj.display_name),
             escape_csv(&obj.original_name.unwrap_or_default()),
@@ -123,7 +133,13 @@ pub fn export_objects_csv_filtered(conn: &Connection, extension: Option<&str>) -
             escape_csv(&obj.created_at),
             obj.file_size_bytes,
             escape_csv(&obj.checksum_sha256)
-        ));
+        );
+        for name in &attr_names {
+            row.push(',');
+            row.push_str(&escape_csv(obj.attrs.get(name).map(String::as_str).unwrap_or("")));
+        }
+        csv.push_str(&row);
+        csv.push('\n');
     }
     
     Ok(csv)
@@ -131,7 +147,8 @@ pub fn export_objects_csv_filtered(conn: &Connection, extension: Option<&str>) -
 
 /// Експортує об'єкти у форматі JSON з фільтром за розширенням.
 pub fn export_objects_json_filtered(conn: &Connection, extension: Option<&str>) -> Result<String, String> {
-    let objects = fetch_objects(conn, extension)?;
+    let mut objects = fetch_objects(conn, extension)?;
+    attach_attributes(conn, &mut objects)?;
     serde_json::to_string_pretty(&objects).map_err(|e| e.to_string())
 }
 
@@ -167,6 +184,7 @@ fn fetch_objects(conn: &Connection, extension_filter: Option<&str>) -> Result<Ve
                 created_at: row.get(5)?,
                 file_size_bytes: row.get(6)?,
                 checksum_sha256: row.get(7)?,
+                attrs: std::collections::BTreeMap::new(),
             })
         })
         .map_err(|e| e.to_string())?
@@ -182,4 +200,31 @@ fn escape_csv(field: &str) -> String {
     } else {
         field.to_string()
     }
+}
+
+/// Активні атрибути у порядку імен — для колонок CSV (A5).
+fn active_attr_names(conn: &Connection) -> Result<Vec<String>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT name FROM attr_definitions WHERE is_active = 1 ORDER BY name ASC",
+    ).map_err(|e| e.to_string())?;
+    let names = stmt.query_map([], |r| r.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<String>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(names)
+}
+
+/// Приєднує заповнені значення атрибутів до об'єктів експорту (A5).
+fn attach_attributes(conn: &Connection, objects: &mut [ExportObject]) -> Result<(), String> {
+    if objects.is_empty() { return Ok(()); }
+    let ids: Vec<String> = objects.iter().map(|o| o.id.clone()).collect();
+    let rows = super::attrs::get_attr_values_for_objects(conn, &ids)?;
+    let mut by_id: std::collections::HashMap<String, std::collections::BTreeMap<String, String>> = std::collections::HashMap::new();
+    for r in rows {
+        by_id.entry(r.object_id).or_default().insert(r.attr_name, r.value);
+    }
+    for obj in objects.iter_mut() {
+        if let Some(m) = by_id.remove(&obj.id) { obj.attrs = m; }
+    }
+    Ok(())
 }
