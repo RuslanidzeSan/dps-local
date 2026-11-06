@@ -182,6 +182,8 @@ export default function App() {
 
   // Фільтри реєстру
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterAttrId, setFilterAttrId] = useState<string>("");
+  const [filterAttrText, setFilterAttrText] = useState<string>("");
   const [filterTagId, setFilterTagId] = useState<string>("");
   const [filterPersonId, setFilterPersonId] = useState<string>("");
   const [filterLocationId, setFilterLocationId] = useState<string>("");
@@ -284,6 +286,8 @@ export default function App() {
   // Єдине місце, де збираються всі фільтри (для списку і для підрахунку)
   const buildFilters = () => ({
     query: searchQuery || null,
+    attr_id: filterAttrId || null,
+    attr_text: filterAttrText.trim() || null,
     tag_id: filterTagId || null,
     person_id: filterPersonId || null,
     location_id: filterLocationId || null,
@@ -370,7 +374,7 @@ export default function App() {
   useEffect(() => {
     fetchFilteredObjects();
     fetchAllData();
-  }, [searchQuery, filterTagId, filterPersonId, filterLocationId,
+  }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterAttrId, filterAttrText,
       filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, page, filterDocDateFrom, filterDocDateTo]);
  
   // При переході в галерею — підтягуємо мініатюри для поточної сторінки
@@ -411,7 +415,7 @@ export default function App() {
   // Зміна будь-якого фільтра скидає реєстр на першу сторінку
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, filterDocDateFrom, filterDocDateTo]);
+  }, [searchQuery, filterTagId, filterPersonId, filterLocationId, filterAttrId, filterAttrText, filterExt, filterDateFrom, filterDateTo, filterMinKb, filterMaxKb, filterDocDateFrom, filterDocDateTo]);
 
   const handleRowClick = (obj: ArchiveObject) => {
     setSelectedObject(obj);
@@ -844,6 +848,34 @@ export default function App() {
               <option value="">Всі місця</option>
               {allLocations.map(l => <option key={l.id} value={l.id}>📍 {l.location_name}</option>)}
             </select>
+            <select value={filterAttrId} onChange={e => { setFilterAttrId(e.target.value); setFilterAttrText(""); }}>
+              <option value="">Всі атрибути</option>
+              {allAttrs.map(a => <option key={a.id} value={a.id}>🧩 {a.name}</option>)}
+            </select>
+            {filterAttrId && (
+              (() => {
+                const attr = allAttrs.find(a => a.id === filterAttrId);
+                if (attr?.data_type === "select") {
+                  return (
+                    <select value={filterAttrText} onChange={e => setFilterAttrText(e.target.value)}>
+                      <option value="">— будь-яке значення —</option>
+                      {(attr.list_values || "").split(";").map(v => <option key={v.trim()} value={v.trim()}>{v.trim()}</option>)}
+                    </select>
+                  );
+                }
+                if (attr?.data_type === "date") {
+                  return <input type="date" value={filterAttrText} onChange={e => setFilterAttrText(e.target.value)} />;
+                }
+                return (
+                  <input
+                    type={attr?.data_type === "number" ? "number" : "text"}
+                    placeholder={attr ? `Значення: ${attr.name}${attr.unit ? `, ${attr.unit}` : ""}` : "Значення атрибута"}
+                    value={filterAttrText}
+                    onChange={e => setFilterAttrText(e.target.value)}
+                  />
+                );
+              })()
+            )}
             <input
               type="text"
               placeholder="Формат (pdf, jpg...)"
@@ -874,10 +906,10 @@ export default function App() {
               до
               <input type="date" value={filterDocDateTo} onChange={e => setFilterDocDateTo(e.target.value)} />
             </label>
-            {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb || filterDocDateFrom || filterDocDateTo) && (
+            {(searchQuery || filterTagId || filterPersonId || filterLocationId || filterExt || filterDateFrom || filterDateTo || filterMinKb || filterMaxKb || filterDocDateFrom || filterDocDateTo || (filterAttrId && filterAttrText)) && (
               <button
                 className="btn ghost"
-                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); setFilterDocDateFrom(""); setFilterDocDateTo(""); }}
+                onClick={() => { setSearchQuery(""); setFilterTagId(""); setFilterPersonId(""); setFilterLocationId(""); setFilterExt(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterMinKb(""); setFilterMaxKb(""); setFilterDocDateFrom(""); setFilterDocDateTo(""); setFilterAttrId(""); setFilterAttrText(""); }}
               >
                 Скинути фільтри
               </button>
