@@ -489,3 +489,6 @@ td.emptycell { padding: 15px; text-align: center; color: var(--ink-soft); font-s
               margin-bottom: 14px; outline: none; }
 .sidesearch::placeholder { color: var(--ink-soft); }
 .sidesearch:focus { border-color: var(--accent); }
+
+/* ---------- D5.3: гравюра порожніх станів ---------- */
+.engraving { display: block; margin: 4px auto 10px; color: var(--ink-soft); opacity: 0.6; }

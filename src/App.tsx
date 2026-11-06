@@ -105,6 +105,24 @@ const CARD_FIELD_LABELS: Record<CardTemplate, { author: string; purpose: string;
 };
 
 // Іконка типу файлу за розширенням
+// Декоративна гравюра для порожніх станів (D5.3) — штрихи в currentColor
+const Engraving = () => (
+  <svg className="engraving" width="150" height="86" viewBox="0 0 150 86"
+       fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
+       role="img" aria-label="Гравюра: перо над сувоєм">
+    {/* сувій зі згинами */}
+    <path d="M20 30 C 20 24, 26 22, 32 24 L 118 24 C 124 22, 130 24, 130 30 L 130 56 C 130 62, 124 64, 118 62 L 32 62 C 26 64, 20 62, 20 56 Z" />
+    <path d="M20 30 C 26 32, 32 30, 32 24 M130 30 C 124 32, 118 30, 118 24" opacity="0.7" />
+    {/* рядки тексту на сувої */}
+    <path d="M38 34 H 112 M38 42 H 96 M38 50 H 104" opacity="0.45" />
+    {/* перо */}
+    <path d="M104 10 C 112 12, 118 20, 116 30 C 114 38, 108 42, 100 42 L 96 38 C 104 36, 110 30, 110 22 Z" />
+    <path d="M96 38 L 88 46 M88 46 C 86 48, 84 48, 82 46" />
+    {/* чорнильна крапля */}
+    <path d="M80 52 c 0 2.4 1.8 3.6 3 3.6 s 3 -1.2 3 -3.6 c 0 -1.6 -3 -4.5 -3 -4.5 s -3 2.9 -3 4.5 Z" opacity="0.8" />
+  </svg>
+);
+
 function fileIcon(path: string): string {
   const ext = (path.split(".").pop() || "").toLowerCase();
   if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "tif", "tiff", "heic"].includes(ext)) return "🖼️";
@@ -303,7 +321,7 @@ export default function App() {
   };
 
   // Завантажує мініатюри лише для тих документів, яких ще немає в кеші
-    const fetchThumbnails = async (objs: ArchiveObject[], force = false) => {
+  const fetchThumbnails = async (objs: ArchiveObject[], force = false) => {
     const needed = force ? objs : objs.filter(o => !(o.id in thumbs));
     if (needed.length === 0) return;
     const results = await Promise.all(needed.map(async o => {
@@ -317,7 +335,7 @@ export default function App() {
     });
   };
 
-    const fetchCard = async (objectId: string) => {
+  const fetchCard = async (objectId: string) => {
     try {
       setCard(await invoke<DocumentCard>("get_document_card_command", { objectId }));
       fetchObjectAttrs(objectId);
@@ -434,7 +452,7 @@ export default function App() {
     }
   };
 
-    // Збереження архівної картки (тип, автор, призначення, дати, розташування)
+  // Збереженнячної картки (тип, автор, призначення, дати, розташування)
   const handleSaveCard = async () => {
     if (!selectedObject || !card) return;
     try {
@@ -656,7 +674,7 @@ export default function App() {
   };
 
   return (
-        <main className="app-shell">
+    <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
           <span className="logo">C</span>
@@ -880,7 +898,10 @@ export default function App() {
               </div>
 
               {objects.length === 0 ? (
-                <p className="empty">Нічого не знайдено за заданими критеріями.</p>
+                <>
+                  <Engraving />
+                  <p className="empty">Нічого не знайдено за заданими критеріями.</p>
+                </>
               ) : viewMode === "table" ? (
                 <table className="objtable">
                   <thead>
@@ -1080,7 +1101,12 @@ export default function App() {
                     <button type="submit" className="btn">+</button>
                   </form>
                 </div>
-              ) : <p className="empty">Оберіть документ у списку.</p>}
+              ) : (
+                <>
+                  <Engraving />
+                  <p className="empty">Оберіть документ у списку.</p>
+                </>
+              )}
             </div>
           </div>
         </>
@@ -1131,7 +1157,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ВКЛАДКА: ПЕРСОНАЛІЇ */}
       {/* ВКЛАДКА: АТРИБУТИ */}
       {activeTab === "attrs" && (
         <div className="panel">
@@ -1179,6 +1204,7 @@ export default function App() {
         </div>
       )}
 
+      {/* ВКЛАДКА: ПЕРСОНАЛІЇ */}
       {activeTab === "persons" && (
         <div className="panel">
           <h2>Люди</h2>
@@ -1276,7 +1302,10 @@ export default function App() {
             Усі CSV/JSON-таблиці зберігаються у теці програми: ~/.dps-local/exports/
           </p>
           {exportFiles.length === 0 ? (
-            <p className="empty">Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Архівовані файли».</p>
+            <>
+              <Engraving />
+              <p className="empty">Експортів ще немає. Згенеруйте CSV або JSON на вкладці «Архівовані файли».</p>
+            </>
           ) : (
             <table className="objtable">
               <thead>
@@ -1373,7 +1402,7 @@ export default function App() {
           <span>
             Всього: {registryStats.total_objects} · Архівовано: {registryStats.active} · Очікує: {registryStats.pending_deletion} · Пошкоджено: {registryStats.checksum_error}
             {registryStats.inaccessible_locations > 0 && <> · <span className="warn">Недоступних місць: {registryStats.inaccessible_locations}</span></>}
-            <> · Обсяг: {formatBytes(registryStats.total_bytes)}</>
+            · Обсяг: {formatBytes(registryStats.total_bytes)}
           </span>
         )}
         <span className="spacer" />
