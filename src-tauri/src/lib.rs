@@ -207,6 +207,18 @@ async fn delete_attr_record(_app: AppHandle, attr_id: String) -> Result<(), Stri
 }
 
 #[tauri::command]
+async fn get_object_attr_values_command(_app: AppHandle, object_id: String) -> Result<Vec<services::attrs::ObjectAttrValue>, String> {
+    let conn = db::open_database()?;
+    services::attrs::get_object_attr_values(&conn, &object_id)
+}
+
+#[tauri::command]
+async fn set_object_attr_value_command(_app: AppHandle, object_id: String, attr_id: String, value: Option<String>) -> Result<(), String> {
+    let conn = db::open_database()?;
+    services::attrs::set_object_attr_value(&conn, &object_id, &attr_id, value.as_deref())
+}
+
+#[tauri::command]
 async fn get_registry_stats_command(_app: AppHandle) -> Result<RegistryStatsDTO, String> {
     let conn = db::open_database()?;
     let s = services::stats::get_registry_stats(&conn)?;
@@ -481,6 +493,8 @@ pub fn run() {
             add_attr_handler,
             update_attr_name,
             delete_attr_record,
+            get_object_attr_values_command,
+            set_object_attr_value_command,
             get_registry_stats_command,
             get_audit_logs_modal,
             search_objects_filtered,

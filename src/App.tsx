@@ -17,6 +17,15 @@ interface ArchiveObject {
   created_at: string;
 }
 
+interface ObjectAttrValue {
+  attr_id: string;
+  attr_name: string;
+  data_type: string;
+  unit: string | null;
+  list_values: string | null;
+  value: string | null;
+}
+
 interface RegistryStatsDTO {
   total_objects: number;
   active: number;
@@ -194,6 +203,27 @@ export default function App() {
       : "standard";
   const cardLbl = CARD_FIELD_LABELS[cardTemplate];
 
+  // Значення атрибутів обраного документа (A3)
+  const [objectAttrs, setObjectAttrs] = useState<ObjectAttrValue[]>([]);
+
+  const fetchObjectAttrs = async (objectId: string) => {
+    setObjectAttrs(await invoke<ObjectAttrValue[]>("get_object_attr_values_command", { objectId }));
+  };
+
+  const setAttrLocal = (attrId: string, value: string) =>
+    setObjectAttrs(prev => prev.map(x => (x.attr_id === attrId ? { ...x, value } : x)));
+
+  const setAttrValue = async (a: ObjectAttrValue, value: string) => {
+    if (!selectedObject) return;
+    try {
+      await invoke("set_object_attr_value_command", { objectId: selectedObject.id, attrId: a.attr_id, value: value.trim() || null });
+      fetchAllData();
+    } catch (err: any) {
+      setStatus(`Помилка атрибута «${a.attr_name}»: ${String(err)}`);
+      fetchObjectAttrs(selectedObject.id);
+    }
+  };
+
   // CRUD стани
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editingTagName, setEditingTagName] = useState<string>("");
@@ -287,6 +317,7 @@ export default function App() {
     const fetchCard = async (objectId: string) => {
     try {
       setCard(await invoke<DocumentCard>("get_document_card_command", { objectId }));
+      fetchObjectAttrs(objectId);
     } catch (err) { console.error("Помилка картки:", err); }
   };
 
@@ -955,6 +986,33 @@ export default function App() {
                       </label>
                       <button className="btn primary" onClick={handleSaveCard}>💾 Зберегти картку</button>
                     </div>
+                  )}
+
+                  {card && objectAttrs.length > 0 && (
+                    <>
+                      <h4>🧩 Атрибути ({objectAttrs.length})</h4>
+                      <div className="attrgrid">
+                        {objectAttrs.map(a => (
+                          <label key={a.attr_id}>
+                            {a.attr_name}{a.unit ? `, ${a.unit}` : ""}
+                            {a.data_type === "select" ? (
+                              <select value={a.value || ""} onChange={e => setAttrValue(a, e.target.value)}>
+                                <option value="">— не задано —</option>
+                                {(a.list_values || "").split(";").map(v => <option key={v.trim()} value={v.trim()}>{v.trim()}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                type={a.data_type === "number" ? "number" : a.data_type === "date" ? "date" : "text"}
+                                value={a.value || ""}
+                                onChange={e => setAttrLocal(a.attr_id, e.target.value)}
+                                onBlur={e => setAttrValue(a, e.target.value)}
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                      <div className="hint">Значення атрибутів зберігаються одразу після виходу з поля.</div>
+                    </>
                   )}
 
                   <h4>Опис документа</h4>
